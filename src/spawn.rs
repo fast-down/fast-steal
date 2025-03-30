@@ -85,3 +85,62 @@ where
         });
     })
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::task::Task;
+    use std::collections::{HashMap, hash_map::Entry};
+
+    fn fib(n: u128) -> u128 {
+        match n {
+            0 => 0,
+            1 => 1,
+            _ => fib(n - 1) + fib(n - 2),
+        }
+    }
+
+    #[test]
+    fn test_spawn() {
+        let tasks = vec![Task {
+            start: 0u128,
+            end: 44u128,
+        }];
+        let task_group = tasks.split_task(8);
+        let (tx, rx) = crossbeam_channel::unbounded();
+        let handle = spawn(task_group, move |rx_task, progress| {
+            'task: for tasks in &rx_task {
+                if tasks.is_empty() {
+                    break;
+                }
+                for task in tasks {
+                    for i in task.start..task.end {
+                        if !rx_task.is_empty() {
+                            continue 'task;
+                        }
+                        let res = fib(i);
+                        if !rx_task.is_empty() {
+                            continue 'task;
+                        }
+                        tx.send((i, res)).unwrap();
+                        progress(1);
+                    }
+                }
+            }
+        });
+        let mut data = HashMap::new();
+        for (i, res) in rx {
+            match data.entry(i) {
+                Entry::Occupied(_) => panic!("{i}: {res} already exists"),
+                Entry::Vacant(entry) => {
+                    entry.insert(res);
+                }
+            }
+        }
+        handle.join().unwrap();
+        dbg!(&data);
+        for i in tasks[0].start..tasks.last().unwrap().end {
+            assert_eq!((i, data.get(&i)), (i, Some(&fib(i))));
+        }
+    }
+}
