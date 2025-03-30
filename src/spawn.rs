@@ -1,5 +1,6 @@
 use crate::{
     get_remain::GetRemain,
+    message::Message,
     split_task::SplitTask,
     task::{TaskGroup, Tasks},
     total::Total,
@@ -24,7 +25,7 @@ where
         + Ord
         + Debug
         + 'static,
-    F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, &dyn Fn(Idx)) + Send + Clone + 'static,
+    F: FnOnce(crossbeam_channel::Receiver<Message<Idx>>, &dyn Fn(Idx)) + Send + Clone + 'static,
 {
     thread::spawn(move || {
         thread::scope(|s| {
@@ -39,7 +40,7 @@ where
                         tx_progress.send((id, reduce)).unwrap();
                     });
                 });
-                tx_task.send(tasks.clone()).unwrap();
+                tx_task.send(Message::NewTask(tasks.clone())).unwrap();
                 workers.push(Worker {
                     tx_task,
                     remain: tasks.total(),
@@ -63,7 +64,7 @@ where
                         .unwrap();
                     let two = one + one;
                     if max_remain < two {
-                        workers[id].tx_task.send(vec![]).unwrap();
+                        workers[id].tx_task.send(Message::Stop).unwrap();
                         continue;
                     }
                     let max_remain_tasks = workers[max_pos].tasks.get_remain(max_remain);
@@ -78,7 +79,16 @@ where
                         "线程 {} 从线程 {} 窃取任务 {:?}",
                         id, max_pos, workers[id].tasks
                     );
-                    workers[id].tx_task.send(workers[id].tasks.clone()).unwrap();
+                    workers[id]
+                        .tx_task
+                        .send(Message::NewTask(workers[id].tasks.clone()))
+                        .unwrap();
+                    workers[max_pos]
+                        .tx_task
+                        .send(Message::UpdateTask(
+                            workers[max_pos].tasks.last().unwrap().end,
+                        ))
+                        .unwrap();
                 }
                 for _ in rx_progress {}
             });
@@ -109,22 +119,26 @@ mod test {
         let task_group = tasks.split_task(8);
         let (tx, rx) = crossbeam_channel::unbounded();
         let handle = spawn(task_group, move |rx_task, progress| {
-            'task: for tasks in &rx_task {
-                if tasks.is_empty() {
-                    break;
-                }
-                for task in tasks {
-                    for i in task.start..task.end {
-                        if !rx_task.is_empty() {
-                            continue 'task;
+            let msg = rx_task.recv();
+            let mut end_index = None;
+            loop {
+                match msg {
+                    Ok(ref msg) => match msg {
+                        Message::NewTask(tasks) => {
+                            for task in tasks {
+                                for i in task.start..task.end {
+                                    let res = fib(i);
+                                    tx.send((i, res)).unwrap();
+                                    progress(1);
+                                }
+                            }
                         }
-                        let res = fib(i);
-                        if !rx_task.is_empty() {
-                            continue 'task;
+                        Message::UpdateTask(index) => {
+                            end_index = Some(index);
                         }
-                        tx.send((i, res)).unwrap();
-                        progress(1);
-                    }
+                        Message::Stop => break,
+                    },
+                    Err(_) => break,
                 }
             }
         });
