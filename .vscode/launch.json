@@ -1,0 +1,64 @@
+{
+  // 使用 IntelliSense 了解相关属性。 
+  // 悬停以查看现有属性的描述。
+  // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'fast_steal'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--lib",
+          "--package=fast-steal"
+        ],
+        "filter": {
+          "name": "fast_steal",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'fast-steal'",
+      "cargo": {
+        "args": [
+          "build",
+          "--bin=fast-steal",
+          "--package=fast-steal"
+        ],
+        "filter": {
+          "name": "fast-steal",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'fast-steal'",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--bin=fast-steal",
+          "--package=fast-steal"
+        ],
+        "filter": {
+          "name": "fast-steal",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
