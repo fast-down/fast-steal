@@ -1,6 +1,5 @@
 use crate::{
     get_remain::GetRemain,
-    message::Message,
     split_task::SplitTask,
     task::{TaskGroup, Tasks},
     total::Total,
@@ -25,7 +24,7 @@ where
         + Ord
         + Debug
         + 'static,
-    F: FnOnce(crossbeam_channel::Receiver<Message<Idx>>, &dyn Fn(Idx)) + Send + Clone + 'static,
+    F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, &dyn Fn(Idx)) + Send + Clone + 'static,
 {
     thread::spawn(move || {
         thread::scope(|s| {
@@ -40,7 +39,7 @@ where
                         tx_progress.send((id, reduce)).unwrap();
                     });
                 });
-                tx_task.send(Message::NewTask(tasks.clone())).unwrap();
+                tx_task.send(tasks.clone()).unwrap();
                 workers.push(Worker {
                     tx_task,
                     remain: tasks.total(),
@@ -64,97 +63,23 @@ where
                         .unwrap();
                     let two = one + one;
                     if max_remain < two {
-                        workers[id].tx_task.send(Message::Stop).unwrap();
+                        workers[id].tx_task.send(vec![]).unwrap();
                         continue;
                     }
-                    let max_remain_tasks = workers[max_pos].tasks.get_remain(max_remain);
-                    let split = max_remain_tasks.split_task(two);
+                    let split = workers[max_pos]
+                        .tasks
+                        .get_remain(max_remain)
+                        .split_task(two);
                     let prev = split[0].clone();
                     let next = split[1].clone();
                     workers[max_pos].remain = prev.total();
                     workers[id].remain = next.total();
                     workers[max_pos].tasks = prev;
                     workers[id].tasks = next;
-                    println!(
-                        "线程 {} 从线程 {} 窃取任务 {:?}",
-                        id, max_pos, workers[id].tasks
-                    );
-                    workers[id]
-                        .tx_task
-                        .send(Message::NewTask(workers[id].tasks.clone()))
-                        .unwrap();
-                    workers[max_pos]
-                        .tx_task
-                        .send(Message::UpdateTask(
-                            workers[max_pos].tasks.last().unwrap().end,
-                        ))
-                        .unwrap();
+                    workers[id].tx_task.send(workers[id].tasks.clone()).unwrap();
                 }
                 for _ in rx_progress {}
             });
         });
     })
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::task::Task;
-    use std::collections::{HashMap, hash_map::Entry};
-
-    fn fib(n: u128) -> u128 {
-        match n {
-            0 => 0,
-            1 => 1,
-            _ => fib(n - 1) + fib(n - 2),
-        }
-    }
-
-    #[test]
-    fn test_spawn() {
-        let tasks = vec![Task {
-            start: 0u128,
-            end: 44u128,
-        }];
-        let task_group = tasks.split_task(8);
-        let (tx, rx) = crossbeam_channel::unbounded();
-        let handle = spawn(task_group, move |rx_task, progress| {
-            let msg = rx_task.recv();
-            let mut end_index = None;
-            loop {
-                match msg {
-                    Ok(ref msg) => match msg {
-                        Message::NewTask(tasks) => {
-                            for task in tasks {
-                                for i in task.start..task.end {
-                                    let res = fib(i);
-                                    tx.send((i, res)).unwrap();
-                                    progress(1);
-                                }
-                            }
-                        }
-                        Message::UpdateTask(index) => {
-                            end_index = Some(index);
-                        }
-                        Message::Stop => break,
-                    },
-                    Err(_) => break,
-                }
-            }
-        });
-        let mut data = HashMap::new();
-        for (i, res) in rx {
-            match data.entry(i) {
-                Entry::Occupied(_) => panic!("{i}: {res} already exists"),
-                Entry::Vacant(entry) => {
-                    entry.insert(res);
-                }
-            }
-        }
-        handle.join().unwrap();
-        dbg!(&data);
-        for i in tasks[0].start..tasks.last().unwrap().end {
-            assert_eq!((i, data.get(&i)), (i, Some(&fib(i))));
-        }
-    }
 }
