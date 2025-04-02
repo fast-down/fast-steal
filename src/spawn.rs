@@ -6,7 +6,6 @@ use crate::{
     worker::Worker,
 };
 use std::{
-    fmt::Debug,
     iter::Sum,
     ops::{Add, Div, Mul, Sub},
     thread::{self, JoinHandle},
@@ -22,7 +21,6 @@ where
         + Div<Output = Idx>
         + Sum<Idx>
         + Ord
-        + Debug
         + 'static,
     F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, &dyn Fn(Idx)) + Send + Clone + 'static,
 {
@@ -72,10 +70,10 @@ where
                         .split_task(two);
                     let prev = split[0].clone();
                     let next = split[1].clone();
-                    workers[max_pos].remain = prev.total();
                     workers[id].remain = next.total();
-                    workers[max_pos].tasks = prev;
                     workers[id].tasks = next;
+                    workers[max_pos].remain = workers[max_pos].remain - workers[id].remain;
+                    workers[max_pos].tasks = prev;
                     workers[id].tx_task.send(workers[id].tasks.clone()).unwrap();
                 }
                 for _ in rx_progress {}
@@ -83,3 +81,60 @@ where
         });
     })
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::task::Task;
+//     use std::collections::{HashMap, hash_map::Entry};
+
+//     fn fib(n: u128) -> u128 {
+//         match n {
+//             0 => 0,
+//             1 => 1,
+//             _ => fib(n - 1) + fib(n - 2),
+//         }
+//     }
+
+//     #[test]
+//     fn test_spawn() {
+//         let tasks = vec![Task {
+//             start: 0u128,
+//             end: 44u128,
+//         }];
+//         let task_group = tasks.split_task(8);
+//         let (tx, rx) = crossbeam_channel::unbounded();
+//         let handle = spawn(task_group, move |rx_task, progress| {
+//             'task: for tasks in &rx_task {
+//                 if tasks.is_empty() {
+//                     break;
+//                 }
+//                 for task in tasks {
+//                     for i in task.start..task.end {
+//                         if !rx_task.is_empty() {
+//                             continue 'task;
+//                         }
+//                         println!("开始计算 {}", i);
+//                         progress(1);
+//                         let res = fib(i);
+//                         tx.send((i, res)).unwrap();
+//                     }
+//                 }
+//             }
+//         });
+//         let mut data = HashMap::new();
+//         for (i, res) in rx {
+//             match data.entry(i) {
+//                 Entry::Occupied(_) => panic!("数字 {i}，值为 {res} 重复计算"),
+//                 Entry::Vacant(entry) => {
+//                     entry.insert(res);
+//                 }
+//             }
+//         }
+//         handle.join().unwrap();
+//         dbg!(&data);
+//         for i in tasks[0].start..tasks.last().unwrap().end {
+//             assert_eq!((i, data.get(&i)), (i, Some(&fib(i))));
+//         }
+//     }
+// }

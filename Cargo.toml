@@ -5,6 +5,11 @@ version = "0.1.0"
 edition = "2024"
 authors = ["share121 <2854631158@qq.com>"]
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/share121/fast-steal"
+homepage = "https://github.com/share121/fast-steal"
+documentation = "https://docs.rs/fast-steal"
+exclude = ["/.github"]
 
 [dependencies]
 crossbeam-channel = "0.5.14"

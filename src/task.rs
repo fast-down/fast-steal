@@ -1,5 +1,5 @@
 /// 这是一个左闭右开的区间 [start, end)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Task<Idx> {
     pub start: Idx,
     pub end: Idx,
