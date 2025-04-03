@@ -66,7 +66,7 @@ fn main() {
     // 汇总任务结果
     let mut data = HashMap::new();
     for (i, res) in rx {
-        // 如何重复计算就报错
+        // 如果重复计算就报错
         match data.entry(i) {
             Entry::Occupied(_) => panic!("数字 {i}，值为 {res} 重复计算"),
             Entry::Vacant(entry) => {

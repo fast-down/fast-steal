@@ -9,7 +9,7 @@ fn fib(n: u128) -> u128 {
     }
 }
 
-fn main() {
+fn fun() {
     // 设定任务
     let tasks = vec![Task {
         start: 0u128,
@@ -46,19 +46,27 @@ fn main() {
     // 汇总任务结果
     let mut data = HashMap::new();
     for (i, res) in rx {
-        // 如何重复计算就报错
+        // 如果重复计算就报错
         match data.entry(i) {
-            Entry::Occupied(_) => panic!("数字 {i}，值为 {res} 重复计算"),
+            Entry::Occupied(_) => println!("数字 {i}，值为 {res} 重复计算"),
             Entry::Vacant(entry) => {
                 entry.insert(res);
             }
         }
+        data.insert(i, res);
     }
     // 等待任务结束
     handle.join().unwrap();
     // 验证结果
-    dbg!(&data);
+    // dbg!(&data);
     for i in tasks[0].start..tasks.last().unwrap().end {
         assert_eq!((i, data.get(&i)), (i, Some(&fib(i))));
+    }
+}
+
+fn main() {
+    for i in 0..100 {
+        println!("{i}");
+        fun();
     }
 }
