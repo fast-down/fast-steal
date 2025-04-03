@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         channel:
-          # - stable
+          - stable
           - beta
           - nightly
 
