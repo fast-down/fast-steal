@@ -55,7 +55,6 @@ fn main() {
                     }
                     // 返回任务执行进度，必须放在任务前
                     progress(1);
-                    println!("开始计算 {}", i);
                     // 任务执行
                     let res = fib(i);
                     // 任务结果发送

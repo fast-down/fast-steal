@@ -114,7 +114,6 @@ mod tests {
                         if !rx_task.is_empty() {
                             continue 'task;
                         }
-                        println!("开始计算 {}", i);
                         progress(1);
                         let res = fib(i);
                         tx.send((i, res)).unwrap();
