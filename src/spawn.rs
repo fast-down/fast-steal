@@ -12,7 +12,16 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-pub fn spawn<Idx, F>(task_group: TaskGroup<Idx>, action: F) -> JoinHandle<()>
+pub trait Spawn<Idx> {
+    fn spawn<F>(self, action: F) -> JoinHandle<()>
+    where
+        F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, usize, &dyn Fn(Idx))
+            + Send
+            + Clone
+            + 'static;
+}
+
+impl<Idx> Spawn<Idx> for TaskGroup<Idx>
 where
     Idx: Send
         + Copy
@@ -23,62 +32,66 @@ where
         + Sum<Idx>
         + Ord
         + 'static,
-    F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, usize, &dyn Fn(Idx))
-        + Send
-        + Clone
-        + 'static,
 {
-    thread::spawn(move || {
-        thread::scope(|s| {
-            let workers: Arc<Mutex<Vec<Worker<Idx>>>> =
-                Arc::new(Mutex::new(Vec::with_capacity(task_group.len())));
-            for (id, tasks) in task_group.into_iter().enumerate() {
-                let (tx_task, rx_task) = crossbeam_channel::unbounded();
-                let action = action.clone();
-                tx_task.send(tasks.clone()).unwrap();
-                workers.lock().unwrap().push(Worker {
-                    tx_task,
-                    remain: tasks.total(),
-                    tasks,
-                });
-                let workers = workers.clone();
-                s.spawn(move || {
-                    action(rx_task, id, &|reduce| {
-                        let mut workers = workers.lock().unwrap();
-                        if workers[id].remain > reduce {
-                            workers[id].remain = workers[id].remain - reduce;
-                            return;
-                        }
-                        let one = reduce / reduce;
-                        workers[id].remain = one - one;
-                        // 找出最大的剩余任务数
-                        let (max_pos, max_remain) = workers
-                            .iter()
-                            .enumerate()
-                            .map(|(i, w)| (i, w.remain))
-                            .max_by_key(|(_, remain)| *remain)
-                            .unwrap();
-                        let two = one + one;
-                        if max_remain < two {
-                            workers[id].tx_task.send(vec![]).unwrap();
-                            return;
-                        }
-                        let split = workers[max_pos]
-                            .tasks
-                            .get_remain(max_remain)
-                            .split_task(two);
-                        let prev = split[0].clone();
-                        let next = split[1].clone();
-                        workers[id].remain = next.total();
-                        workers[id].tasks = next;
-                        workers[max_pos].remain = workers[max_pos].remain - workers[id].remain;
-                        workers[max_pos].tasks = prev;
-                        workers[id].tx_task.send(workers[id].tasks.clone()).unwrap();
+    fn spawn<F>(self, action: F) -> JoinHandle<()>
+    where
+        F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, usize, &dyn Fn(Idx))
+            + Send
+            + Clone
+            + 'static,
+    {
+        thread::spawn(move || {
+            thread::scope(|s| {
+                let workers: Arc<Mutex<Vec<Worker<Idx>>>> =
+                    Arc::new(Mutex::new(Vec::with_capacity(self.len())));
+                for (id, tasks) in self.into_iter().enumerate() {
+                    let (tx_task, rx_task) = crossbeam_channel::unbounded();
+                    let action = action.clone();
+                    tx_task.send(tasks.clone()).unwrap();
+                    workers.lock().unwrap().push(Worker {
+                        tx_task,
+                        remain: tasks.total(),
+                        tasks,
                     });
-                });
-            }
-        });
-    })
+                    let workers = workers.clone();
+                    s.spawn(move || {
+                        action(rx_task, id, &|reduce| {
+                            let mut workers = workers.lock().unwrap();
+                            if workers[id].remain > reduce {
+                                workers[id].remain = workers[id].remain - reduce;
+                                return;
+                            }
+                            let one = reduce / reduce;
+                            workers[id].remain = one - one;
+                            // 找出最大的剩余任务数
+                            let (max_pos, max_remain) = workers
+                                .iter()
+                                .enumerate()
+                                .map(|(i, w)| (i, w.remain))
+                                .max_by_key(|(_, remain)| *remain)
+                                .unwrap();
+                            let two = one + one;
+                            if max_remain < two {
+                                workers[id].tx_task.send(vec![]).unwrap();
+                                return;
+                            }
+                            let split = workers[max_pos]
+                                .tasks
+                                .get_remain(max_remain)
+                                .split_task(two);
+                            let prev = split[0].clone();
+                            let next = split[1].clone();
+                            workers[id].remain = next.total();
+                            workers[id].tasks = next;
+                            workers[max_pos].remain = workers[max_pos].remain - workers[id].remain;
+                            workers[max_pos].tasks = prev;
+                            workers[id].tx_task.send(workers[id].tasks.clone()).unwrap();
+                        });
+                    });
+                }
+            });
+        })
+    }
 }
 
 #[cfg(test)]
@@ -112,7 +125,7 @@ mod tests {
         }];
         let task_group = tasks.split_task(8);
         let (tx, rx) = crossbeam_channel::unbounded();
-        let handle = spawn(task_group, move |rx_task, id, progress| {
+        let handle = task_group.spawn(move |rx_task, id, progress| {
             println!("线程 {id} 启动");
             'task: for tasks in &rx_task {
                 if tasks.is_empty() {

@@ -19,7 +19,7 @@
 //! ## 使用方法
 //!
 //! ```rust
-//! use fast_steal::{spawn::spawn, split_task::SplitTask, task::Task};
+//! use fast_steal::{spawn::Spawn, split_task::SplitTask, task::Task};
 //! use std::collections::{HashMap, hash_map::Entry};
 //!
 //! fn fib(n: u128) -> u128 {
@@ -49,7 +49,7 @@
 //!     let task_group = tasks.split_task(8);
 //!     // 接受任务结果
 //!     let (tx, rx) = crossbeam_channel::unbounded();
-//!     let handle = spawn(task_group, move |rx_task, id, progress| {
+//!     let handle = task_group.spawn(move |rx_task, id, progress| {
 //!         println!("线程 {id} 启动");
 //!         // 监听任务
 //!         'task: for tasks in &rx_task {
