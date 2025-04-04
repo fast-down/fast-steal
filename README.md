@@ -30,6 +30,15 @@ fn fib(n: u128) -> u128 {
     }
 }
 
+fn fib_fast(n: u128) -> u128 {
+    let mut a = 0;
+    let mut b = 1;
+    for _ in 0..n {
+        (a, b) = (b, a + b);
+    }
+    a
+}
+
 fn main() {
     // 设定任务
     let tasks = vec![Task {
@@ -80,7 +89,7 @@ fn main() {
     // 验证结果
     dbg!(&data);
     for i in tasks[0].start..tasks.last().unwrap().end {
-        assert_eq!((i, data.get(&i)), (i, Some(&fib(i))));
+        assert_eq!((i, data.get(&i)), (i, Some(&fib_fast(i))));
     }
 }
 ```
