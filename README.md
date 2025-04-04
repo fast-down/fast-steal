@@ -19,7 +19,7 @@
 ## 使用方法
 
 ```rust
-use fast_steal::{spawn::Spawn, split_task::SplitTask, task::Task};
+use fast_steal::{spawn::Spawn, split_task::SplitTask};
 use std::collections::{HashMap, hash_map::Entry};
 
 fn fib(n: u128) -> u128 {
@@ -41,10 +41,7 @@ fn fib_fast(n: u128) -> u128 {
 
 fn main() {
     // 设定任务
-    let tasks = vec![Task {
-        start: 0u128,
-        end: 44u128,
-    }];
+    let tasks = vec![(0..44).into()];
     // 切分任务
     let task_group = tasks.split_task(8);
     // 接受任务结果

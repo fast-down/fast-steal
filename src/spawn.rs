@@ -97,7 +97,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::task::Task;
     use std::collections::{HashMap, hash_map::Entry};
 
     fn fib(n: u128) -> u128 {
@@ -119,10 +118,7 @@ mod tests {
 
     #[test]
     fn test_spawn() {
-        let tasks = vec![Task {
-            start: 0u128,
-            end: 44u128,
-        }];
+        let tasks = vec![(0..44).into()];
         let task_group = tasks.split_task(8);
         let (tx, rx) = crossbeam_channel::unbounded();
         let handle = task_group.spawn(move |rx_task, id, progress| {

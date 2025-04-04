@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 /// 这是一个左闭右开的区间 [start, end)
 #[derive(Clone, Debug, PartialEq)]
 pub struct Task<Idx> {
@@ -25,6 +27,15 @@ impl<Idx: Clone> Task<Idx> {
 impl<Idx: PartialOrd> Task<Idx> {
     pub fn is_empty(&self) -> bool {
         self.start >= self.end
+    }
+}
+
+impl<Idx> From<Range<Idx>> for Task<Idx> {
+    fn from(range: Range<Idx>) -> Self {
+        Task {
+            start: range.start,
+            end: range.end,
+        }
     }
 }
 
@@ -90,5 +101,42 @@ mod tests_is_empty {
         // 测试反向区间
         let range5 = Task { start: 5, end: 1 };
         assert_eq!(range5.is_empty(), true);
+    }
+}
+
+#[cfg(test)]
+mod tests_from_range {
+    use super::*;
+
+    #[test]
+    fn converts_range_to_task() {
+        let range = 5..8;
+        let task = Task::from(range);
+        assert_eq!(task.start, 5);
+        assert_eq!(task.end, 8);
+    }
+
+    #[test]
+    fn converts_range_to_task_with_negative_start() {
+        let range = -5..-1;
+        let task = Task::from(range);
+        assert_eq!(task.start, -5);
+        assert_eq!(task.end, -1);
+    }
+
+    #[test]
+    fn converts_empty_range_to_task() {
+        let range = 5..5;
+        let task = Task::from(range);
+        assert_eq!(task.start, 5);
+        assert_eq!(task.end, 5);
+    }
+
+    #[test]
+    fn converts_range_to_task_with_negative_end() {
+        let range = 5..-1;
+        let task = Task::from(range);
+        assert_eq!(task.start, 5);
+        assert_eq!(task.end, -1);
     }
 }
