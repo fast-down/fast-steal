@@ -7,22 +7,22 @@ pub struct Task<Idx> {
 pub type Tasks<Idx> = Vec<Task<Idx>>;
 pub type TaskGroup<Idx> = Vec<Tasks<Idx>>;
 
-impl<Idx: Copy> Task<Idx> {
+impl<Idx: Clone> Task<Idx> {
     pub fn split_task(&self, point: Idx) -> (Self, Self) {
         (
             Task {
-                start: self.start,
-                end: point,
+                start: self.start.clone(),
+                end: point.clone(),
             },
             Task {
                 start: point,
-                end: self.end,
+                end: self.end.clone(),
             },
         )
     }
 }
 
-impl<Idx: PartialOrd + Copy> Task<Idx> {
+impl<Idx: PartialOrd> Task<Idx> {
     pub fn is_empty(&self) -> bool {
         self.start >= self.end
     }

@@ -7,16 +7,16 @@ pub trait Total<Idx> {
 
 impl<Idx> Total<Idx> for Task<Idx>
 where
-    Idx: Copy + Sub<Output = Idx>,
+    Idx: Clone + Sub<Output = Idx>,
 {
     fn total(&self) -> Idx {
-        self.end - self.start
+        self.end.clone() - self.start.clone()
     }
 }
 
 impl<Idx> Total<Idx> for Tasks<Idx>
 where
-    Idx: Copy + Sub<Output = Idx> + Sum<Idx>,
+    Idx: Clone + Sub<Output = Idx> + Sum<Idx>,
 {
     fn total(&self) -> Idx {
         self.iter().map(|task| task.total()).sum()
@@ -25,7 +25,7 @@ where
 
 impl<Idx> Total<Idx> for TaskGroup<Idx>
 where
-    Idx: Copy + Sub<Output = Idx> + Sum<Idx>,
+    Idx: Clone + Sub<Output = Idx> + Sum<Idx>,
 {
     fn total(&self) -> Idx {
         self.iter().map(|task| task.total()).sum()
