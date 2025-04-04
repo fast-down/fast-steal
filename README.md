@@ -11,9 +11,10 @@
 ## 优势
 
 1. 只有一个依赖 `crossbeam-channel`
-2. 使用无锁消息队列，速度非常快
+2. 超细颗粒度任务窃取，速度非常快
 3. 支持各种数字类型，以及各种实现了 `Send` + `Copy` + `Add<Output = Idx>` + `Sub<Output = Idx>` + `Mul<Output = Idx>` + `Div<Output = Idx>` + `Sum<Idx>` + `Ord` + `PartialEq` 的类型
 4. 尽可能少的 clone
+5. 安全的 Rust 代码
 
 ## 使用方法
 

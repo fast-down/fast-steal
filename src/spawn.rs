@@ -8,6 +8,7 @@ use crate::{
 use std::{
     iter::Sum,
     ops::{Add, Div, Mul, Sub},
+    sync::{Arc, Mutex},
     thread::{self, JoinHandle},
 };
 
@@ -26,58 +27,53 @@ where
 {
     thread::spawn(move || {
         thread::scope(|s| {
-            let mut workers = Vec::with_capacity(task_group.len());
-            let (tx_progress, rx_progress) = crossbeam_channel::bounded(0);
+            let workers: Arc<Mutex<Vec<Worker<Idx>>>> =
+                Arc::new(Mutex::new(Vec::with_capacity(task_group.len())));
             for (id, tasks) in task_group.into_iter().enumerate() {
                 let (tx_task, rx_task) = crossbeam_channel::unbounded();
-                let tx_progress = tx_progress.clone();
                 let action = action.clone();
-                s.spawn(move || {
-                    action(rx_task, &|reduce| {
-                        tx_progress.send((id, reduce)).unwrap();
-                    });
-                });
                 tx_task.send(tasks.clone()).unwrap();
-                workers.push(Worker {
+                workers.lock().unwrap().push(Worker {
                     tx_task,
                     remain: tasks.total(),
                     tasks,
                 });
+                let workers = workers.clone();
+                s.spawn(move || {
+                    action(rx_task, &|reduce| {
+                        let mut workers = workers.lock().unwrap();
+                        if workers[id].remain > reduce {
+                            workers[id].remain = workers[id].remain - reduce;
+                            return;
+                        }
+                        let one = reduce / reduce;
+                        workers[id].remain = one - one;
+                        // 找出最大的剩余任务数
+                        let (max_pos, max_remain) = workers
+                            .iter()
+                            .enumerate()
+                            .map(|(i, w)| (i, w.remain))
+                            .max_by_key(|(_, remain)| *remain)
+                            .unwrap();
+                        let two = one + one;
+                        if max_remain < two {
+                            workers[id].tx_task.send(vec![]).unwrap();
+                            return;
+                        }
+                        let split = workers[max_pos]
+                            .tasks
+                            .get_remain(max_remain)
+                            .split_task(two);
+                        let prev = split[0].clone();
+                        let next = split[1].clone();
+                        workers[id].remain = next.total();
+                        workers[id].tasks = next;
+                        workers[max_pos].remain = workers[max_pos].remain - workers[id].remain;
+                        workers[max_pos].tasks = prev;
+                        workers[id].tx_task.send(workers[id].tasks.clone()).unwrap();
+                    });
+                });
             }
-            s.spawn(move || {
-                for (id, reduce) in &rx_progress {
-                    if workers[id].remain > reduce {
-                        workers[id].remain = workers[id].remain - reduce;
-                        continue;
-                    }
-                    let one = reduce / reduce;
-                    workers[id].remain = one - one;
-                    // 找出最大的剩余任务数
-                    let (max_pos, max_remain) = workers
-                        .iter()
-                        .enumerate()
-                        .map(|(i, w)| (i, w.remain))
-                        .max_by_key(|(_, remain)| *remain)
-                        .unwrap();
-                    let two = one + one;
-                    if max_remain < two {
-                        workers[id].tx_task.send(vec![]).unwrap();
-                        continue;
-                    }
-                    let split = workers[max_pos]
-                        .tasks
-                        .get_remain(max_remain)
-                        .split_task(two);
-                    let prev = split[0].clone();
-                    let next = split[1].clone();
-                    workers[id].remain = next.total();
-                    workers[id].tasks = next;
-                    workers[max_pos].remain = workers[max_pos].remain - workers[id].remain;
-                    workers[max_pos].tasks = prev;
-                    workers[id].tx_task.send(workers[id].tasks.clone()).unwrap();
-                }
-                for _ in rx_progress {}
-            });
         });
     })
 }
