@@ -23,7 +23,10 @@ where
         + Sum<Idx>
         + Ord
         + 'static,
-    F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, &dyn Fn(Idx)) + Send + Clone + 'static,
+    F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, usize, &dyn Fn(Idx))
+        + Send
+        + Clone
+        + 'static,
 {
     thread::spawn(move || {
         thread::scope(|s| {
@@ -40,7 +43,7 @@ where
                 });
                 let workers = workers.clone();
                 s.spawn(move || {
-                    action(rx_task, &|reduce| {
+                    action(rx_task, id, &|reduce| {
                         let mut workers = workers.lock().unwrap();
                         if workers[id].remain > reduce {
                             workers[id].remain = workers[id].remain - reduce;
@@ -109,7 +112,8 @@ mod tests {
         }];
         let task_group = tasks.split_task(8);
         let (tx, rx) = crossbeam_channel::unbounded();
-        let handle = spawn(task_group, move |rx_task, progress| {
+        let handle = spawn(task_group, move |rx_task, id, progress| {
+            println!("线程 {id} 启动");
             'task: for tasks in &rx_task {
                 if tasks.is_empty() {
                     break;
