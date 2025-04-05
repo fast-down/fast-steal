@@ -2,7 +2,6 @@ use fast_steal::{spawn::Spawn, split_task::SplitTask};
 use std::collections::{HashMap, hash_map::Entry};
 
 fn fib(n: u128) -> u128 {
-    return n;
     match n {
         0 => 0,
         1 => 1,
@@ -11,7 +10,6 @@ fn fib(n: u128) -> u128 {
 }
 
 fn fib_fast(n: u128) -> u128 {
-    return n;
     let mut a = 0;
     let mut b = 1;
     for _ in 0..n {
@@ -22,7 +20,7 @@ fn fib_fast(n: u128) -> u128 {
 
 fn fun() {
     // 设定任务
-    let tasks = vec![(0..1_0000_0000).into()];
+    let tasks = vec![(0..43).into()];
     // 切分任务
     let task_group = tasks.split_task(8);
     // 接受任务结果
