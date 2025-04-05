@@ -2,6 +2,7 @@ use fast_steal::{spawn::Spawn, split_task::SplitTask};
 use std::collections::{HashMap, hash_map::Entry};
 
 fn fib(n: u128) -> u128 {
+    return n;
     match n {
         0 => 0,
         1 => 1,
@@ -10,6 +11,7 @@ fn fib(n: u128) -> u128 {
 }
 
 fn fib_fast(n: u128) -> u128 {
+    return n;
     let mut a = 0;
     let mut b = 1;
     for _ in 0..n {
@@ -20,20 +22,18 @@ fn fib_fast(n: u128) -> u128 {
 
 fn fun() {
     // 设定任务
-    let tasks = vec![(0..44).into()];
+    let tasks = vec![(0..1_0000_0000).into()];
     // 切分任务
     let task_group = tasks.split_task(8);
     // 接受任务结果
     let (tx, rx) = crossbeam_channel::unbounded();
-    let handle = task_group.spawn(move |rx_task, id, occupy, finish| {
-        println!("线程 {id} 启动");
+    let handle = task_group.spawn(move |rx_task, _id, occupy, finish| {
         // 监听任务
         'task: for tasks in &rx_task {
             // 退出条件
             if tasks.is_empty() {
                 break;
             }
-            println!("线程 {id} 执行任务 {tasks:?}");
             // 业务逻辑
             for task in tasks {
                 for i in (task.start..task.end).step_by(2) {

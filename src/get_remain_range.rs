@@ -134,5 +134,14 @@ mod tests {
             ]
         );
         assert_eq!(tasks.get_remain_range(5, 5), vec![]);
+        assert_eq!(tasks.get_remain_range(5, 6), vec![]);
+        assert_eq!(
+            tasks.get_remain_range(4, 2),
+            vec![Task { start: 4, end: 6 }] // 2
+        );
+        assert_eq!(
+            tasks.get_remain_range(4, 3),
+            vec![Task { start: 4, end: 5 }] // 1
+        );
     }
 }

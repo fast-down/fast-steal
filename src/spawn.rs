@@ -49,6 +49,7 @@ where
                 let two = one + one;
                 let workers: Arc<Mutex<Vec<Worker<Idx>>>> =
                     Arc::new(Mutex::new(Vec::with_capacity(self.len())));
+                let barrier = Arc::new(Barrier::new(self.len()));
                 for (id, tasks) in self.into_iter().enumerate() {
                     let (tx_task, rx_task) = crossbeam_channel::unbounded();
                     let action = action.clone();
@@ -60,7 +61,9 @@ where
                         occupy: zero,
                     });
                     let workers = workers.clone();
+                    let barrier = barrier.clone();
                     s.spawn(move || {
+                        barrier.wait();
                         action(
                             rx_task,
                             id,
