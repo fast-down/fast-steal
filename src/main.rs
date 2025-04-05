@@ -25,7 +25,7 @@ fn fun() {
     let task_group = tasks.split_task(8);
     // 接受任务结果
     let (tx, rx) = crossbeam_channel::unbounded();
-    let handle = task_group.spawn(move |rx_task, id, progress| {
+    let handle = task_group.spawn(move |rx_task, id, occupy, finish| {
         println!("线程 {id} 启动");
         // 监听任务
         'task: for tasks in &rx_task {
@@ -33,19 +33,25 @@ fn fun() {
             if tasks.is_empty() {
                 break;
             }
+            println!("线程 {id} 执行任务 {tasks:?}");
             // 业务逻辑
             for task in tasks {
-                for i in task.start..task.end {
+                for i in (task.start..task.end).step_by(2) {
                     // 任务窃取过程，必须放在任务前
                     if !rx_task.is_empty() {
                         continue 'task;
                     }
-                    // 返回任务执行进度，必须放在任务前
-                    progress(1);
+                    // 提前占用需要执行的任务，必须放在任务前
+                    occupy(2);
                     // 任务执行
-                    let res = fib(i);
-                    // 任务结果发送
-                    tx.send((i, res)).unwrap();
+                    tx.send((i, fib(i))).unwrap();
+                    if i + 1 < task.end {
+                        tx.send((i + 1, fib(i + 1))).unwrap();
+                        // 任务释放，必须放在任务后（可以占用 10 个任务，但是只完成 5 个任务）
+                        finish(2);
+                    } else {
+                        finish(1);
+                    }
                 }
             }
         }

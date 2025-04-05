@@ -5,16 +5,15 @@ use crate::{
 use std::ops::Sub;
 
 pub trait GetRemain<Idx> {
-    fn get_remain(&self, total: Idx) -> Tasks<Idx>;
+    fn get_remain(&self, remain: Idx) -> Tasks<Idx>;
 }
 
 impl<Idx> GetRemain<Idx> for Tasks<Idx>
 where
     Idx: Copy + Sub<Output = Idx> + PartialOrd,
 {
-    fn get_remain(&self, total: Idx) -> Tasks<Idx> {
+    fn get_remain(&self, mut remain: Idx) -> Tasks<Idx> {
         let mut res = vec![];
-        let mut remain = total;
         for task in self.iter().rev() {
             let total = task.total();
             if total <= remain {

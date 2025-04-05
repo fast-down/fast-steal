@@ -1,5 +1,6 @@
 use crate::{
     get_remain::GetRemain,
+    get_remain_range::GetRemainRange,
     split_task::SplitTask,
     task::{TaskGroup, Tasks},
     total::Total,
@@ -8,14 +9,14 @@ use crate::{
 use std::{
     iter::Sum,
     ops::{Add, Div, Mul, Sub},
-    sync::{Arc, Mutex},
+    sync::{Arc, Barrier, Mutex},
     thread::{self, JoinHandle},
 };
 
 pub trait Spawn<Idx> {
     fn spawn<F>(self, action: F) -> JoinHandle<()>
     where
-        F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, usize, &dyn Fn(Idx))
+        F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, usize, &dyn Fn(Idx), &dyn Fn(Idx))
             + Send
             + Clone
             + 'static;
@@ -35,13 +36,17 @@ where
 {
     fn spawn<F>(self, action: F) -> JoinHandle<()>
     where
-        F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, usize, &dyn Fn(Idx))
+        F: FnOnce(crossbeam_channel::Receiver<Tasks<Idx>>, usize, &dyn Fn(Idx), &dyn Fn(Idx))
             + Send
             + Clone
             + 'static,
     {
         thread::spawn(move || {
             thread::scope(|s| {
+                let one = self[0][0].total();
+                let one = one / one;
+                let zero = one - one;
+                let two = one + one;
                 let workers: Arc<Mutex<Vec<Worker<Idx>>>> =
                     Arc::new(Mutex::new(Vec::with_capacity(self.len())));
                 for (id, tasks) in self.into_iter().enumerate() {
@@ -52,41 +57,54 @@ where
                         tx_task,
                         remain: tasks.total(),
                         tasks,
+                        occupy: zero,
                     });
                     let workers = workers.clone();
                     s.spawn(move || {
-                        action(rx_task, id, &|reduce| {
-                            let mut workers = workers.lock().unwrap();
-                            if workers[id].remain > reduce {
-                                workers[id].remain = workers[id].remain - reduce;
-                                return;
-                            }
-                            let one = reduce / reduce;
-                            workers[id].remain = one - one;
-                            // 找出最大的剩余任务数
-                            let (max_pos, max_remain) = workers
-                                .iter()
-                                .enumerate()
-                                .map(|(i, w)| (i, w.remain))
-                                .max_by_key(|(_, remain)| *remain)
-                                .unwrap();
-                            let two = one + one;
-                            if max_remain < two {
-                                workers[id].tx_task.send(vec![]).unwrap();
-                                return;
-                            }
-                            let split = workers[max_pos]
-                                .tasks
-                                .get_remain(max_remain)
-                                .split_task(two);
-                            let prev = split[0].clone();
-                            let next = split[1].clone();
-                            workers[id].remain = next.total();
-                            workers[id].tasks = next;
-                            workers[max_pos].remain = workers[max_pos].remain - workers[id].remain;
-                            workers[max_pos].tasks = prev;
-                            workers[id].tx_task.send(workers[id].tasks.clone()).unwrap();
-                        });
+                        action(
+                            rx_task,
+                            id,
+                            &|reduce| {
+                                let mut workers = workers.lock().unwrap();
+                                workers[id].occupy = workers[id].occupy + reduce;
+                                if workers[id].occupy > workers[id].remain {
+                                    workers[id].occupy = workers[id].remain;
+                                }
+                            },
+                            &|reduce| {
+                                let mut workers = workers.lock().unwrap();
+                                workers[id].occupy = zero;
+                                if workers[id].remain > reduce {
+                                    workers[id].remain = workers[id].remain - reduce;
+                                    return;
+                                }
+                                workers[id].remain = zero;
+                                // 找出最大的剩余任务数
+                                let (max_pos, max_remain_without_occupy) = workers
+                                    .iter()
+                                    .enumerate()
+                                    .map(|(i, w)| (i, w.remain - w.occupy))
+                                    .max_by_key(|(_, remain)| *remain)
+                                    .unwrap();
+                                if max_remain_without_occupy < two {
+                                    workers[id].tx_task.send(vec![]).unwrap();
+                                    return;
+                                }
+                                let split = workers[max_pos]
+                                    .tasks
+                                    .get_remain(max_remain_without_occupy)
+                                    .split_task(two);
+                                let next = split[1].clone();
+                                workers[id].remain = next.total();
+                                workers[id].tasks = next;
+                                workers[max_pos].tasks = workers[max_pos]
+                                    .tasks
+                                    .get_remain_range(workers[max_pos].remain, workers[id].remain);
+                                workers[max_pos].remain =
+                                    workers[max_pos].remain - workers[id].remain;
+                                workers[id].tx_task.send(workers[id].tasks.clone()).unwrap();
+                            },
+                        );
                     });
                 }
             });
@@ -121,7 +139,7 @@ mod tests {
         let tasks = vec![(0..44).into()];
         let task_group = tasks.split_task(8);
         let (tx, rx) = crossbeam_channel::unbounded();
-        let handle = task_group.spawn(move |rx_task, id, progress| {
+        let handle = task_group.spawn(move |rx_task, id, occupy, finish| {
             println!("线程 {id} 启动");
             'task: for tasks in &rx_task {
                 if tasks.is_empty() {
@@ -132,8 +150,9 @@ mod tests {
                         if !rx_task.is_empty() {
                             continue 'task;
                         }
-                        progress(1);
+                        occupy(1);
                         let res = fib(i);
+                        finish(1);
                         tx.send((i, res)).unwrap();
                     }
                 }

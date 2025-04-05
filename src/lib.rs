@@ -46,7 +46,7 @@
 //!     let task_group = tasks.split_task(8);
 //!     // 接受任务结果
 //!     let (tx, rx) = crossbeam_channel::unbounded();
-//!     let handle = task_group.spawn(move |rx_task, id, progress| {
+//!     let handle = task_group.spawn(move |rx_task, id, occupy, finish| {
 //!         println!("线程 {id} 启动");
 //!         // 监听任务
 //!         'task: for tasks in &rx_task {
@@ -61,12 +61,14 @@
 //!                     if !rx_task.is_empty() {
 //!                         continue 'task;
 //!                     }
-//!                     // 返回任务执行进度，必须放在任务前
-//!                     progress(1);
+//!                     // 提前占用需要执行的任务，必须放在任务前
+//!                     occupy(1);
 //!                     // 任务执行
 //!                     let res = fib(i);
 //!                     // 任务结果发送
 //!                     tx.send((i, res)).unwrap();
+//!                     // 任务释放，必须放在任务后（可以占用 10 个任务，但是只完成 5 个任务）
+//!                     finish(1);
 //!                 }
 //!             }
 //!         }
@@ -93,6 +95,7 @@
 //! ```
 
 mod get_remain;
+mod get_remain_range;
 pub mod spawn;
 pub mod split_task;
 pub mod task;
