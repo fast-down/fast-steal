@@ -1,142 +1,150 @@
-use std::ops::Range;
+use std::{
+    ops::Range,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
-/// 这是一个左闭右开的区间 [start, end)
-#[derive(Clone, Debug, PartialEq)]
-pub struct Task<Idx> {
-    pub start: Idx,
-    pub end: Idx,
+use crate::task_list::TaskList;
+#[derive(Debug)]
+pub struct Task {
+    start: AtomicUsize,
+    end: AtomicUsize,
 }
-pub type Tasks<Idx> = Vec<Task<Idx>>;
-pub type TaskGroup<Idx> = Vec<Tasks<Idx>>;
 
-impl<Idx: Clone> Task<Idx> {
-    pub fn split_task(&self, point: Idx) -> (Self, Self) {
-        (
-            Task {
-                start: self.start.clone(),
-                end: point.clone(),
-            },
-            Task {
-                start: point,
-                end: self.end.clone(),
-            },
-        )
+impl Task {
+    pub fn remain(&self) -> usize {
+        self.end() - self.start()
     }
-}
 
-impl<Idx: PartialOrd> Task<Idx> {
-    pub fn is_empty(&self) -> bool {
-        self.start >= self.end
+    pub fn start(&self) -> usize {
+        self.start.load(Ordering::Acquire)
     }
-}
+    pub fn set_start(&self, start: usize) {
+        self.start.store(start, Ordering::Release);
+    }
+    pub fn end(&self) -> usize {
+        self.end.load(Ordering::Acquire)
+    }
+    pub fn set_end(&self, end: usize) {
+        self.end.store(end, Ordering::Release);
+    }
 
-impl<Idx> From<Range<Idx>> for Task<Idx> {
-    fn from(range: Range<Idx>) -> Self {
-        Task {
-            start: range.start,
-            end: range.end,
+    pub fn new(start: usize, end: usize) -> Self {
+        Self {
+            start: AtomicUsize::new(start),
+            end: AtomicUsize::new(end),
         }
     }
 }
 
-#[cfg(test)]
-mod tests_split_task {
-    use super::*;
-
-    #[test]
-    fn test_split_task() {
-        let task = Task { start: 0, end: 10 };
-        let (task1, task2) = task.split_task(5);
-        assert_eq!(task1, Task { start: 0, end: 5 });
-        assert_eq!(task2, Task { start: 5, end: 10 });
+impl PartialEq for Task {
+    fn eq(&self, other: &Self) -> bool {
+        self.start() == other.start() && self.end() == other.end()
     }
+}
 
-    #[test]
-    fn test_split_task_out_of_bounds() {
-        let task = Task { start: 0, end: 10 };
-        let (task1, task2) = task.split_task(15);
-        assert_eq!(task1, Task { start: 0, end: 15 });
-        assert_eq!(task2, Task { start: 15, end: 10 });
+impl From<&(usize, usize)> for Task {
+    fn from(value: &(usize, usize)) -> Self {
+        Self::new(value.0, value.1)
     }
+}
 
-    #[test]
-    fn test_split_task_at_start() {
-        let task = Task { start: 0, end: 10 };
-        let (task1, task2) = task.split_task(0);
-        assert_eq!(task1, Task { start: 0, end: 0 });
-        assert_eq!(task2, Task { start: 0, end: 10 });
+impl From<&Range<usize>> for Task {
+    fn from(value: &Range<usize>) -> Self {
+        Self::new(value.start, value.end)
     }
+}
 
-    #[test]
-    fn test_split_task_at_end() {
-        let task = Task { start: 0, end: 10 };
-        let (task1, task2) = task.split_task(10);
-        assert_eq!(task1, Task { start: 0, end: 10 });
-        assert_eq!(task2, Task { start: 10, end: 10 });
+impl From<&TaskList> for Task {
+    fn from(value: &TaskList) -> Self {
+        Self::new(0, value.len)
     }
 }
 
 #[cfg(test)]
-mod tests_is_empty {
+mod tests {
     use super::*;
+    use std::sync::Arc;
+    use std::thread;
 
     #[test]
-    fn test_is_empty() {
-        // 测试空区间
-        let range1 = Task { start: 5, end: 5 };
-        assert_eq!(range1.is_empty(), true);
-
-        // 测试非空区间
-        let range2 = Task { start: 1, end: 5 };
-        assert_eq!(range2.is_empty(), false);
-
-        // 测试负数区间
-        let range3 = Task { start: -5, end: -1 };
-        assert_eq!(range3.is_empty(), false);
-
-        // 测试负数空区间
-        let range4 = Task { start: -1, end: -1 };
-        assert_eq!(range4.is_empty(), true);
-
-        // 测试反向区间
-        let range5 = Task { start: 5, end: 1 };
-        assert_eq!(range5.is_empty(), true);
-    }
-}
-
-#[cfg(test)]
-mod tests_from_range {
-    use super::*;
-
-    #[test]
-    fn converts_range_to_task() {
-        let range = 5..8;
-        let task = Task::from(range);
-        assert_eq!(task.start, 5);
-        assert_eq!(task.end, 8);
+    fn test_new_task() {
+        let task = Task::new(10, 20);
+        assert_eq!(task.start(), 10);
+        assert_eq!(task.end(), 20);
+        assert_eq!(task.remain(), 10);
     }
 
     #[test]
-    fn converts_range_to_task_with_negative_start() {
-        let range = -5..-1;
-        let task = Task::from(range);
-        assert_eq!(task.start, -5);
-        assert_eq!(task.end, -1);
+    fn test_from_tuple() {
+        let task: Task = (&(5, 15)).into();
+        assert_eq!(task.start(), 5);
+        assert_eq!(task.end(), 15);
     }
 
     #[test]
-    fn converts_empty_range_to_task() {
-        let range = 5..5;
-        let task = Task::from(range);
-        assert_eq!(task.start, 5);
-        assert_eq!(task.end, 5);
+    fn test_from_range() {
+        let range = 3..8;
+        let task: Task = (&range).into();
+        assert_eq!(task.start(), range.start);
+        assert_eq!(task.end(), range.end);
     }
 
     #[test]
-    fn converts_range_to_task_with_negative_end() {
-        let range = 5..-1;
-        let task = Task::from(range);
-        assert_eq!(task.start, 5);
-        assert_eq!(task.end, -1);
+    fn test_setters() {
+        let task = Task::new(0, 0);
+        task.set_start(7);
+        task.set_end(14);
+        assert_eq!(task.start(), 7);
+        assert_eq!(task.end(), 14);
+    }
+
+    #[test]
+    fn test_remain() {
+        let task = Task::new(10, 25);
+        assert_eq!(task.remain(), 15);
+
+        task.set_start(20);
+        assert_eq!(task.remain(), 5);
+    }
+
+    #[test]
+    fn test_partial_eq() {
+        let task1 = Task::new(1, 10);
+        let task2 = Task::new(1, 10);
+        let task3 = Task::new(2, 10);
+        let task4 = Task::new(1, 11);
+
+        assert_eq!(task1, task2);
+        assert_ne!(task1, task3);
+        assert_ne!(task1, task4);
+    }
+
+    #[test]
+    fn test_thread_safety() {
+        let task = Arc::new(Task::new(0, 100));
+
+        let task_clone = Arc::clone(&task);
+        let handle1 = thread::spawn(move || {
+            task_clone.set_start(10);
+        });
+
+        let task_clone = Arc::clone(&task);
+        let handle2 = thread::spawn(move || {
+            task_clone.set_end(90);
+        });
+
+        handle1.join().unwrap();
+        handle2.join().unwrap();
+
+        assert_eq!(task.start(), 10);
+        assert_eq!(task.end(), 90);
+    }
+
+    #[test]
+    fn test_from_task_list() {
+        let task_list = TaskList::from(vec![10..42, 80..84]);
+        let task: Task = (&task_list).into();
+        assert_eq!(task.start(), 0);
+        assert_eq!(task.end(), 36);
     }
 }
