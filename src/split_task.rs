@@ -33,7 +33,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn split_evenly_divisible() {
+    fn test_split_task() {
         let task = Task::new(1, 6); // 1, 2, 3, 4, 5
         let groups: Vec<_> = task.split_task(3).collect(); // 5 / 3 = 1 remainder 2
 
@@ -41,5 +41,16 @@ mod tests {
             groups,
             vec![Task::new(1, 3), Task::new(3, 5), Task::new(5, 6)]
         );
+    }
+
+    #[test]
+    fn test_split_two() {
+        let task = Task::new(1, 6); // 1, 2, 3, 4, 5
+        let (mid, end) = task.split_two();
+
+        assert_eq!(task.start(), 1);
+        assert_eq!(task.end(), 3);
+        assert_eq!(mid, 3);
+        assert_eq!(end, 6);
     }
 }

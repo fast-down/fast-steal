@@ -24,7 +24,7 @@ impl Task {
         self.start.store(start, Ordering::Release);
     }
     pub fn fetch_start(&self, value: usize) -> usize {
-        self.start.fetch_add(value, Ordering::Release)
+        self.start.fetch_add(value, Ordering::AcqRel)
     }
     pub fn end(&self) -> usize {
         self.end.load(Ordering::Acquire)
@@ -33,7 +33,7 @@ impl Task {
         self.end.store(end, Ordering::Release);
     }
     pub fn fetch_end(&self, value: usize) -> usize {
-        self.end.fetch_add(value, Ordering::Release)
+        self.end.fetch_add(value, Ordering::AcqRel)
     }
 
     pub fn new(start: usize, end: usize) -> Self {
