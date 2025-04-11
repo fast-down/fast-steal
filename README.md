@@ -51,11 +51,15 @@ fn main() {
         |closure| thread::spawn(move || closure()),
         move |task, get_task| {
             loop {
+                // 必须在每次循环开始判断 task.start() < task.end()，因为其他线程可能会修改 task
                 while task.start() < task.end() {
                     let i = tasks_clone.get(task.start());
+                    // 提前更新进度，防止其他线程重复计算
+                    task.fetch_add_start(1);
+                    // 计算
                     tx.send((i, fib(i))).unwrap();
-                    task.fetch_start(1);
                 }
+                // 检查是否还有任务
                 if !get_task() {
                     break;
                 }
