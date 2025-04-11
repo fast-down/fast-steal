@@ -1,4 +1,6 @@
 use core::ops::Range;
+extern crate alloc;
+use alloc::vec::Vec;
 
 pub struct TaskList {
     tasks: Vec<Range<usize>>,
@@ -31,7 +33,9 @@ impl TaskList {
 
 #[cfg(test)]
 mod tests {
+    extern crate std;
     use super::*;
+    use std::vec;
 
     #[test]
     fn test_empty_list() {

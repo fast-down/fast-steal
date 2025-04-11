@@ -70,9 +70,10 @@ impl From<&TaskList> for Task {
 
 #[cfg(test)]
 mod tests {
+    extern crate std;
     use super::*;
     use std::sync::Arc;
-    use std::thread;
+    use std::{thread, vec};
 
     #[test]
     fn test_new_task() {

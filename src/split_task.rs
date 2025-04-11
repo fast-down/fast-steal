@@ -30,7 +30,10 @@ impl SplitTask for Task {
 
 #[cfg(test)]
 mod tests {
+    extern crate std;
     use super::*;
+    use std::vec;
+    use std::vec::Vec;
 
     #[test]
     fn test_split_task() {

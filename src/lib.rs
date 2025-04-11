@@ -14,16 +14,16 @@
 //! 2. 无锁
 //! 3. 零拷贝
 //! 4. 安全的 Rust 代码
-//! 5. 除 `thread` 外，实现 `no_std`
+//! 5. no_std 支持，不依赖于标准库
 //! 6. 超细颗粒度任务窃取，速度非常快
 //!
 //! ```rust
+//! use fast_steal::{spawn::Spawn, task_list::TaskList};
 //! use std::{
 //!     collections::{HashMap, hash_map::Entry},
 //!     sync::{Arc, mpsc},
+//!     thread,
 //! };
-//!
-//! use fast_steal::{spawn::Spawn, task_list::TaskList};
 //!
 //! fn fib(n: usize) -> usize {
 //!     match n {
@@ -46,24 +46,30 @@
 //!     let tasks: Arc<TaskList> = Arc::new(vec![0..48].into());
 //!     let (tx, rx) = mpsc::channel();
 //!     let tasks_clone = tasks.clone();
-//!     let handle = tasks.clone().spawn(8, move |task, get_task| {
-//!         loop {
-//!             while task.start() < task.end() {
-//!                 let i = tasks_clone.get(task.start());
-//!                 tx.send((i, fib(i))).unwrap();
-//!                 task.fetch_start(1);
+//!     let handles = tasks.clone().spawn(
+//!         8,
+//!         |closure| thread::spawn(move || closure()),
+//!         move |task, get_task| {
+//!             loop {
+//!                 while task.start() < task.end() {
+//!                     let i = tasks_clone.get(task.start());
+//!                     tx.send((i, fib(i))).unwrap();
+//!                     task.fetch_start(1);
+//!                 }
+//!                 if !get_task() {
+//!                     break;
+//!                 }
 //!             }
-//!             if !get_task() {
-//!                 break;
-//!             }
-//!         }
-//!     });
+//!         },
+//!     );
 //!     // 汇总任务结果
 //!     let mut data = HashMap::new();
 //!     for (i, res) in rx {
 //!         // 如果重复计算就报错
 //!         match data.entry(i) {
-//!             Entry::Occupied(_) => panic!("数字 {i}，值为 {res} 重复计算"),
+//!             Entry::Occupied(_) => {
+//!                 panic!("数字 {i}，值为 {res} 重复计算")
+//!             }
 //!             Entry::Vacant(entry) => {
 //!                 entry.insert(res);
 //!             }
@@ -71,7 +77,9 @@
 //!         data.insert(i, res);
 //!     }
 //!     // 等待任务结束
-//!     handle.join().unwrap();
+//!     for handle in handles {
+//!         handle.join().unwrap();
+//!     }
 //!     // 验证结果
 //!     dbg!(&data);
 //!     for i in 0..tasks.len {
@@ -81,6 +89,7 @@
 //! }
 //! ```
 
+#![no_std]
 pub mod spawn;
 pub mod split_task;
 pub mod task;
