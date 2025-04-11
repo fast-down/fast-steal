@@ -14,23 +14,12 @@ fn fib(n: usize) -> usize {
 }
 
 fn fib_fast(n: usize) -> usize {
-    if n == 0 {
-        return 0;
-    } else if n == 1 {
-        return 1;
-    }
-
     let mut a = 0;
     let mut b = 1;
-    let mut sum = 0;
-
-    for _ in 2..=n {
-        sum = a + b;
-        a = b;
-        b = sum;
+    for _ in 0..n {
+        (a, b) = (b, a + b);
     }
-
-    sum
+    a
 }
 
 fn main() {
