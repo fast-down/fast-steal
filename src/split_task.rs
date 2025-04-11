@@ -2,6 +2,7 @@ use crate::task::Task;
 
 pub trait SplitTask {
     fn split_task(&self, n: usize) -> impl Iterator<Item = Task>;
+    fn split_two(&self) -> (usize, usize);
 }
 
 impl SplitTask for Task {
@@ -16,6 +17,14 @@ impl SplitTask for Task {
             let end = start + per_group + if i < remainder { 1 } else { 0 };
             Task::new(start, end)
         })
+    }
+
+    fn split_two(&self) -> (usize, usize) {
+        let start = self.start();
+        let end = self.end();
+        let mid = (start + end) / 2;
+        self.set_end(mid);
+        (mid, end)
     }
 }
 

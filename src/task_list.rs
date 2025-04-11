@@ -1,8 +1,8 @@
 use std::ops::Range;
 
 pub struct TaskList {
-    pub tasks: Vec<Range<usize>>,
-    pub start_point: Vec<usize>,
+    tasks: Vec<Range<usize>>,
+    start_point: Vec<usize>,
     pub len: usize,
 }
 
@@ -23,7 +23,7 @@ impl From<Vec<Range<usize>>> for TaskList {
 }
 
 impl TaskList {
-    fn get(&self, index: usize) -> usize {
+    pub fn get(&self, index: usize) -> usize {
         let point = self.start_point.partition_point(|&x| x <= index) - 1;
         self.tasks[point].start + index - self.start_point[point]
     }

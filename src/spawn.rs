@@ -1,8 +1,4 @@
-use crate::{
-    split_task::{self, SplitTask},
-    task::Task,
-    task_list::TaskList,
-};
+use crate::{split_task::SplitTask, task::Task, task_list::TaskList};
 use std::{
     sync::Arc,
     thread::{self, JoinHandle},
@@ -14,7 +10,7 @@ pub trait Spawn {
         F: FnOnce(Arc<Task>) + Send + Clone + 'static;
 }
 
-impl Spawn for TaskList {
+impl Spawn for Arc<TaskList> {
     fn spawn<F>(self, threads: usize, action: F) -> JoinHandle<()>
     where
         F: FnOnce(Arc<Task>) + Send + Clone + 'static,
@@ -22,7 +18,7 @@ impl Spawn for TaskList {
         thread::spawn(move || {
             thread::scope(|s| {
                 let tasks: Arc<Vec<Arc<Task>>> = Arc::new(
-                    Task::from(&self)
+                    Task::from(self.as_ref())
                         .split_task(threads)
                         .map(|t| Arc::new(t))
                         .collect(),

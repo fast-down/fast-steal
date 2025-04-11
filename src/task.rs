@@ -1,9 +1,9 @@
+use crate::task_list::TaskList;
 use std::{
     ops::Range,
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use crate::task_list::TaskList;
 #[derive(Debug)]
 pub struct Task {
     start: AtomicUsize,
@@ -12,7 +12,9 @@ pub struct Task {
 
 impl Task {
     pub fn remain(&self) -> usize {
-        self.end() - self.start()
+        let start = self.start();
+        let end = self.end();
+        if start >= end { 0 } else { end - start }
     }
 
     pub fn start(&self) -> usize {
@@ -21,11 +23,17 @@ impl Task {
     pub fn set_start(&self, start: usize) {
         self.start.store(start, Ordering::Release);
     }
+    pub fn fetch_start(&self, value: usize) -> usize {
+        self.start.fetch_add(value, Ordering::Release)
+    }
     pub fn end(&self) -> usize {
         self.end.load(Ordering::Acquire)
     }
     pub fn set_end(&self, end: usize) {
         self.end.store(end, Ordering::Release);
+    }
+    pub fn fetch_end(&self, value: usize) -> usize {
+        self.end.fetch_add(value, Ordering::Release)
     }
 
     pub fn new(start: usize, end: usize) -> Self {
