@@ -1,7 +1,7 @@
 //! # fast-steal 神偷
 //!
 //! ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/share121/fast-steal/master)
-//! [![Rust](https://github.com/share121/fast-steal/workflows/Test/badge.svg)](https://github.com/share121/t-steal/actions)
+//! [![Rust](https://github.com/share121/fast-steal/workflows/Test/badge.svg)](https://github.com/share121/fast-steal/actions)
 //! [![Latest version](https://img.shields.io/crates/v/fast-steal.svg)](https://crates.io/crates/fast-steal)
 //! [![Documentation](https://docs.rs/fast-steal/badge.svg)](https://docs.rs/fast-steal)
 //! ![License](https://img.shields.io/crates/l/fast-steal.svg)
