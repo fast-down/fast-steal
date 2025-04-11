@@ -10,14 +10,7 @@ repository = "https://github.com/share121/fast-steal"
 homepage = "https://github.com/share121/fast-steal"
 documentation = "https://docs.rs/fast-steal"
 exclude = ["/.github"]
-keywords = [
-  "parallel",
-  "thread",
-  "concurrency",
-  "join",
-  "performance",
-  "no-std",
-]
+keywords = ["parallel", "thread", "concurrency", "performance", "no-std"]
 categories = ["concurrency", "no-std"]
 
 [dependencies]
