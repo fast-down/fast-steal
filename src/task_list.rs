@@ -1,4 +1,4 @@
-use std::ops::Range;
+use core::ops::Range;
 
 pub struct TaskList {
     tasks: Vec<Range<usize>>,

@@ -1,5 +1,5 @@
 use crate::task_list::TaskList;
-use std::{
+use core::{
     ops::Range,
     sync::atomic::{AtomicUsize, Ordering},
 };

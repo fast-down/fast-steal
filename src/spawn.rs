@@ -1,8 +1,7 @@
+extern crate alloc;
 use crate::{split_task::SplitTask, task::Task, task_list::TaskList};
-use std::{
-    sync::Arc,
-    thread::{self, JoinHandle},
-};
+use alloc::sync::Arc;
+use std::thread::{self, JoinHandle};
 
 pub trait Spawn {
     fn spawn<F>(self, threads: usize, action: F) -> JoinHandle<()>
