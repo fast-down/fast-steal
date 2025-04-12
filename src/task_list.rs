@@ -55,7 +55,7 @@ impl TaskList {
             // 计算当前段在请求范围内的实际截取部分
             let curr_start = seg_start.max(range.start);
             let curr_end = seg_end.min(range.end);
-            
+
             if curr_start < curr_end {
                 // 转换为实际数值范围
                 let actual_start = self.tasks[seg].start + (curr_start - seg_start);
@@ -144,7 +144,7 @@ mod tests {
     #[test]
     fn test_get_range() {
         let tasks = TaskList::from(vec![10..15, 20..25]);
-        
+
         // 单任务段范围
         assert_eq!(tasks.get_range(0..5), vec![10..15]);
         // 跨任务段范围
@@ -157,5 +157,23 @@ mod tests {
         assert_eq!(tasks.get_range(5..7), vec![20..22]);
         // 完整覆盖多个段
         assert_eq!(tasks.get_range(0..10), vec![10..15, 20..25]);
+    }
+
+    #[test]
+    fn test_get_range2() {
+        let tasks = TaskList::from(vec![20..25, 10..15]);
+
+        // 单任务段范围
+        assert_eq!(tasks.get_range(0..5), vec![20..25]);
+        // 跨任务段范围
+        assert_eq!(tasks.get_range(3..7), vec![23..25, 10..12]);
+        // 空范围
+        assert_eq!(tasks.get_range(5..5), vec![]);
+        // 边界测试
+        assert_eq!(tasks.get_range(4..5), vec![24..25]);
+        assert_eq!(tasks.get_range(4..6), vec![24..25, 10..11]);
+        assert_eq!(tasks.get_range(5..7), vec![10..12]);
+        // 完整覆盖多个段
+        assert_eq!(tasks.get_range(0..10), vec![20..25, 10..15]);
     }
 }
