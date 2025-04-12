@@ -6,14 +6,14 @@ pub trait Spawn {
     fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
     where
         S: Fn(Box<dyn FnOnce() + Send + 'static>) -> R,
-        F: FnOnce(Arc<Task>, &dyn Fn() -> bool) + Send + Clone + 'static;
+        F: FnOnce(usize, Arc<Task>, &dyn Fn() -> bool) + Send + Clone + 'static;
 }
 
 impl Spawn for Arc<TaskList> {
     fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
     where
         S: Fn(Box<dyn FnOnce() + Send + 'static>) -> R,
-        F: FnOnce(Arc<Task>, &dyn Fn() -> bool) + Send + Clone + 'static,
+        F: FnOnce(usize, Arc<Task>, &dyn Fn() -> bool) + Send + Clone + 'static,
     {
         let tasks: Arc<Vec<Arc<Task>>> = Arc::new(
             Task::from(self.as_ref())
@@ -26,7 +26,7 @@ impl Spawn for Arc<TaskList> {
             let tasks = tasks.clone();
             let action = action.clone();
             let handle = spawn(Box::new(move || {
-                action(tasks[id].clone(), &|| {
+                action(id, tasks[id].clone(), &|| {
                     let (max_pos, max_remain) = tasks
                         .iter()
                         .enumerate()
@@ -84,7 +84,7 @@ mod tests {
         let handles = tasks.clone().spawn(
             8,
             |closure| thread::spawn(move || closure()),
-            move |task, get_task| {
+            move |_, task, get_task| {
                 loop {
                     while task.start() < task.end() {
                         let i = tasks_clone.get(task.start());
@@ -131,7 +131,7 @@ mod tests {
         let handles = tasks.clone().spawn(
             8,
             |closure| thread::spawn(move || closure()),
-            move |task, get_task| {
+            move |_, task, get_task| {
                 loop {
                     while task.start() < task.end() {
                         let i = tasks_clone.get(task.start());

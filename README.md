@@ -49,7 +49,7 @@ fn main() {
     let handles = tasks.clone().spawn(
         8,
         |closure| thread::spawn(move || closure()),
-        move |task, get_task| {
+        move |id, task, get_task| {
             loop {
                 // 必须在每次循环开始判断 task.start() < task.end()，因为其他线程可能会修改 task
                 while task.start() < task.end() {

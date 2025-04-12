@@ -25,9 +25,46 @@ impl From<Vec<Range<usize>>> for TaskList {
 }
 
 impl TaskList {
+    pub fn position(&self, index: usize) -> usize {
+        self.start_point.partition_point(|&x| x <= index) - 1
+    }
+
     pub fn get(&self, index: usize) -> usize {
-        let point = self.start_point.partition_point(|&x| x <= index) - 1;
+        let point = self.position(index);
         self.tasks[point].start + index - self.start_point[point]
+    }
+
+    pub fn get_range(&self, range: Range<usize>) -> Vec<Range<usize>> {
+        if range.is_empty() {
+            return Vec::new();
+        }
+
+        let mut result = Vec::new();
+        let start_seg = self.position(range.start);
+        let end_seg = self.position(range.end - 1);
+
+        for seg in start_seg..=end_seg {
+            // 获取当前段的全局索引范围
+            let seg_start = self.start_point[seg];
+            let seg_end = if seg + 1 < self.start_point.len() {
+                self.start_point[seg + 1]
+            } else {
+                self.len
+            };
+
+            // 计算当前段在请求范围内的实际截取部分
+            let curr_start = seg_start.max(range.start);
+            let curr_end = seg_end.min(range.end);
+            
+            if curr_start < curr_end {
+                // 转换为实际数值范围
+                let actual_start = self.tasks[seg].start + (curr_start - seg_start);
+                let actual_end = self.tasks[seg].start + (curr_end - seg_start);
+                result.push(actual_start..actual_end);
+            }
+        }
+
+        result
     }
 }
 
@@ -102,5 +139,23 @@ mod tests {
 
         assert_eq!(tasks.get(0), 30);
         assert_eq!(tasks.get(4), 34);
+    }
+
+    #[test]
+    fn test_get_range() {
+        let tasks = TaskList::from(vec![10..15, 20..25]);
+        
+        // 单任务段范围
+        assert_eq!(tasks.get_range(0..5), vec![10..15]);
+        // 跨任务段范围
+        assert_eq!(tasks.get_range(3..7), vec![13..15, 20..22]);
+        // 空范围
+        assert_eq!(tasks.get_range(5..5), vec![]);
+        // 边界测试
+        assert_eq!(tasks.get_range(4..5), vec![14..15]);
+        assert_eq!(tasks.get_range(4..6), vec![14..15, 20..21]);
+        assert_eq!(tasks.get_range(5..7), vec![20..22]);
+        // 完整覆盖多个段
+        assert_eq!(tasks.get_range(0..10), vec![10..15, 20..25]);
     }
 }
