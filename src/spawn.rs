@@ -5,18 +5,18 @@ use alloc::{boxed::Box, sync::Arc, vec::Vec};
 pub trait Spawn {
     fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
     where
-        S: Fn(Box<dyn FnOnce() + Send + 'static>) -> R,
+        S: Fn(Box<dyn FnOnce() + Send>) -> R,
         F: FnOnce(usize, Arc<Task>, &dyn Fn() -> bool) + Send + Clone + 'static;
 }
 
 impl Spawn for Arc<TaskList> {
     fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
     where
-        S: Fn(Box<dyn FnOnce() + Send + 'static>) -> R,
+        S: Fn(Box<dyn FnOnce() + Send>) -> R,
         F: FnOnce(usize, Arc<Task>, &dyn Fn() -> bool) + Send + Clone + 'static,
     {
         let tasks: Arc<Vec<Arc<Task>>> = Arc::new(
-            Task::from(self.as_ref())
+            Task::from(&*self)
                 .split_task(threads)
                 .map(|t| Arc::new(t))
                 .collect(),
@@ -37,8 +37,8 @@ impl Spawn for Arc<TaskList> {
                         return false;
                     }
                     let (start, end) = tasks[max_pos].split_two();
-                    tasks[id].set_start(start);
                     tasks[id].set_end(end);
+                    tasks[id].set_start(start);
                     true
                 })
             }));

@@ -39,14 +39,15 @@ impl TaskList {
             return Vec::new();
         }
 
-        let mut result = Vec::new();
         let start_seg = self.position(range.start);
         let end_seg = self.position(range.end - 1);
+        let tasks_len = self.tasks.len();
+        let mut result = Vec::with_capacity(end_seg + 1 - start_seg);
 
         for seg in start_seg..=end_seg {
             // 获取当前段的全局索引范围
             let seg_start = self.start_point[seg];
-            let seg_end = if seg + 1 < self.start_point.len() {
+            let seg_end = if seg + 1 < tasks_len {
                 self.start_point[seg + 1]
             } else {
                 self.len
