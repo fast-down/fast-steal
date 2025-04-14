@@ -18,7 +18,7 @@
 //! 6. 超细颗粒度任务窃取，速度非常快
 //!
 //! ```rust
-//! use fast_steal::{spawn::Spawn, task_list::TaskList};
+//! use fast_steal::{Spawn, TaskList};
 //! use std::{
 //!     collections::{HashMap, hash_map::Entry},
 //!     sync::{Arc, mpsc},
@@ -94,7 +94,12 @@
 //! ```
 
 #![no_std]
-pub mod spawn;
-pub mod split_task;
-pub mod task;
-pub mod task_list;
+mod spawn;
+mod split_task;
+mod task;
+mod task_list;
+
+pub use spawn::Spawn;
+pub use split_task::SplitTask;
+pub use task::Task;
+pub use task_list::TaskList;
