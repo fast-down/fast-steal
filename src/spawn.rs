@@ -1,6 +1,7 @@
 extern crate alloc;
 use crate::{split_task::SplitTask, task::Task, task_list::TaskList};
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
+extern crate std;
 
 pub trait Spawn {
     fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
@@ -21,12 +22,15 @@ impl Spawn for Arc<TaskList> {
                 .map(|t| Arc::new(t))
                 .collect(),
         );
+        let mutex = Arc::new(std::sync::Mutex::new(()));
         let mut handles = Vec::with_capacity(threads);
         for id in 0..threads {
             let tasks = tasks.clone();
             let action = action.clone();
+            let mutex = mutex.clone();
             let handle = spawn(Box::new(move || {
                 action(id, tasks[id].clone(), &|| {
+                    let _lock = mutex.lock().unwrap();
                     let (max_pos, max_remain) = tasks
                         .iter()
                         .enumerate()
