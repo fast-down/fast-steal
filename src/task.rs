@@ -6,8 +6,8 @@ use core::{
 
 #[derive(Debug)]
 pub struct Task {
-    start: AtomicUsize,
-    end: AtomicUsize,
+    pub(crate) start: AtomicUsize,
+    pub(crate) end: AtomicUsize,
 }
 
 impl Task {

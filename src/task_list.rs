@@ -26,7 +26,10 @@ impl From<Vec<Range<usize>>> for TaskList {
 
 impl TaskList {
     pub fn position(&self, index: usize) -> usize {
-        self.start_point.partition_point(|&x| x <= index) - 1
+        match self.start_point.binary_search(&index) {
+            Ok(i) => i,
+            Err(i) => i.min(self.start_point.len() - 1),
+        }
     }
 
     pub fn get(&self, index: usize) -> usize {

@@ -1,7 +1,7 @@
 [package]
 name = "fast-steal"
 description = "特别快的多线程库，支持超细颗粒度的任务窃取"
-version = "2.6.0"
+version = "3.0.0"
 edition = "2024"
 authors = ["share121 <2854631158@qq.com>"]
 license = "MIT"
@@ -14,3 +14,14 @@ keywords = ["parallel", "thread", "concurrency", "performance", "no-std"]
 categories = ["concurrency", "no-std"]
 
 [dependencies]
+bumpalo = "3.17.0"
+spin = { version = "0.10.0", default-features = false, features = ["mutex", "spin_mutex", "fair_mutex"] }
+
+[features]
+std = ["spin/std"]
+
+default = ["std"]
+
+[[bench]]
+name = "fib"
+path = "benches/fib.rs"
