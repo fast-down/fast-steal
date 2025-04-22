@@ -11,11 +11,14 @@ pub struct TaskList {
 impl From<Vec<Range<usize>>> for TaskList {
     fn from(tasks: Vec<Range<usize>>) -> Self {
         let mut len = 0;
-        let mut start_point = Vec::with_capacity(tasks.len());
-        for i in 0..tasks.len() {
-            start_point.push(len);
-            len += tasks[i].len()
-        }
+        let start_point = tasks
+            .iter()
+            .map(|item| {
+                let len1 = len;
+                len += item.len();
+                len1
+            })
+            .collect::<Vec<_>>();
         Self {
             tasks,
             start_point,
@@ -25,10 +28,12 @@ impl From<Vec<Range<usize>>> for TaskList {
 }
 
 impl TaskList {
+    #[inline(always)]
     pub fn position(&self, index: usize) -> usize {
         self.start_point.partition_point(|&x| x <= index) - 1
     }
 
+    #[inline]
     pub fn get(&self, index: usize) -> usize {
         let point = self.position(index);
         self.tasks[point].start + index - self.start_point[point]

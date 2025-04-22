@@ -1,10 +1,10 @@
-use alloc::sync::Arc;
 use crate::Task;
+use alloc::sync::Arc;
 
 type RefreshFn<'a> = &'a dyn Fn() -> bool;
 type CurrentTask<'a> = &'a Task;
 
-pub trait Action : Send + Clone + 'static {
+pub trait Action: Send + Clone + 'static {
     fn execute(&self, id: usize, task: CurrentTask, refresh: RefreshFn);
 }
 
@@ -16,11 +16,11 @@ impl<T: FnOnce(usize, CurrentTask, RefreshFn) + Send + Clone + 'static> Action f
     }
 }
 
-
 // provide type inference
 /// Create `Action` implementation from `FnOnce`
 #[inline]
-pub fn from_fn(f: impl FnOnce(usize, CurrentTask, RefreshFn) + Send + Clone + 'static) -> impl Action {
+pub fn from_fn(
+    f: impl FnOnce(usize, CurrentTask, RefreshFn) + Send + Clone + 'static,
+) -> impl Action {
     f
 }
-

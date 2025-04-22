@@ -1,6 +1,5 @@
 #![feature(test)] // Enable the test feature (required for benchmarking)
 
-
 #[cfg(test)]
 mod benches {
     extern crate test; // Import the test crate
@@ -44,7 +43,8 @@ mod benches {
             let handles = tasks.clone().spawn(
                 8,
                 |executor| thread::spawn(move || executor.run()),
-                action::from_fn(move |id, task, refresh| { // use `action::from_fn` for type inference
+                action::from_fn(move |id, task, refresh| {
+                    // use `action::from_fn` for type inference
                     loop {
                         const BATCH_COUNT: usize = 6;
                         let mut results = Vec::with_capacity(BATCH_COUNT);

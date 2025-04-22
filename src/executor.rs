@@ -1,11 +1,11 @@
 use core::{marker::PhantomData, mem::ManuallyDrop, pin::Pin};
 
+use crate::action::Action;
 use alloc::sync::Arc;
 use bumpalo::Bump;
-use crate::action::Action;
 
-use spin::Mutex;
 use crate::{SplitTask, Task};
+use spin::Mutex;
 
 pub struct Executor<A: Action> {
     pub(crate) bump: Pin<Arc<Bump>>, // Bump should not be moved
@@ -25,12 +25,11 @@ unsafe impl<A: Action> Sync for Executor<A> {}
 
 impl<A: Action> Drop for Executor<A> {
     fn drop(&mut self) {
-        let arc = unsafe {
-            ManuallyDrop::take(&mut self.task_ptrs)
-        };
+        let arc = unsafe { ManuallyDrop::take(&mut self.task_ptrs) };
         let count = Arc::strong_count(&arc);
         if count <= 1 {
-            for task in arc.into_iter() { // drop all `Task`
+            for task in arc.into_iter() {
+                // drop all `Task`
                 drop(unsafe { task.read() });
             }
         }
@@ -49,7 +48,8 @@ impl<A: Action> Executor<A> {
         let task = self.get();
         self.action.execute(self.id, task, &|| {
             let _guard = self.mutex.lock();
-            let (max_pos, max_remain) = self.task_ptrs
+            let (max_pos, max_remain) = self
+                .task_ptrs
                 .iter()
                 .enumerate()
                 .map(|(i, w)| (i, unsafe { &**w }.remain()))

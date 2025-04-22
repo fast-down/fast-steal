@@ -1,10 +1,10 @@
 extern crate alloc;
 use core::mem::ManuallyDrop;
 
-use crate::{split_task::SplitTask, task::Task, task_list::TaskList};
-use alloc::{sync::Arc, vec::Vec};
 use crate::action::Action;
 use crate::executor::Executor;
+use crate::{split_task::SplitTask, task::Task, task_list::TaskList};
+use alloc::{sync::Arc, vec::Vec};
 
 pub trait Spawn {
     fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
@@ -19,7 +19,9 @@ impl Spawn for Arc<TaskList> {
         S: Fn(Executor<F>) -> R,
         F: Action,
     {
-        let bump = Arc::pin(bumpalo::Bump::with_capacity(threads * size_of::<Task>() + 10));
+        let bump = Arc::pin(bumpalo::Bump::with_capacity(
+            threads * size_of::<Task>() + 10,
+        ));
         let task_ptrs: Arc<[*const Task]> = Arc::from(
             Task::from(&*self)
                 .split_task(threads)
@@ -50,13 +52,13 @@ impl Spawn for Arc<TaskList> {
 mod tests {
     extern crate std;
     use super::*;
+    use crate::action;
     use std::{
         collections::{HashMap, hash_map::Entry},
         dbg,
         sync::mpsc,
         thread, vec,
     };
-    use crate::action;
 
     fn fib(n: usize) -> usize {
         match n {

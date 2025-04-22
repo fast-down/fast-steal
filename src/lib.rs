@@ -94,12 +94,12 @@
 
 extern crate alloc;
 
+pub mod action;
+pub mod executor;
 mod spawn;
 mod split_task;
 mod task;
 mod task_list;
-pub mod executor;
-pub mod action;
 
 pub use spawn::Spawn;
 pub use split_task::SplitTask;

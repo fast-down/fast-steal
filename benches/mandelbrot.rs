@@ -55,15 +55,7 @@ mod benches {
         b.iter(|| {
             for x in 0..BOUNDS.0 {
                 for y in 0..BOUNDS.1 {
-                    black_box(escape_time(
-                        pixel_to_point(
-                            BOUNDS,
-                            (x, y),
-                            UL,
-                            LR,
-                        ),
-                        100,
-                    ));
+                    black_box(escape_time(pixel_to_point(BOUNDS, (x, y), UL, LR), 100));
                 }
             }
         });
@@ -76,42 +68,36 @@ mod benches {
         b.iter(|| {
             let mut pixels = vec![0; BOUNDS.0 * BOUNDS.1];
 
-            fn render(pixels: &mut [u8],
-                      bounds: (usize, usize),
-                      upper_left: Complex<f64>,
-                      lower_right: Complex<f64>)
-            {
+            fn render(
+                pixels: &mut [u8],
+                bounds: (usize, usize),
+                upper_left: Complex<f64>,
+                lower_right: Complex<f64>,
+            ) {
                 assert!(pixels.len() == bounds.0 * bounds.1);
 
                 for row in 0..bounds.1 {
                     for column in 0..bounds.0 {
-                        let point = pixel_to_point(bounds, (column, row),
-                                                   upper_left, lower_right);
-                        pixels[row * bounds.0 + column] =
-                            match escape_time(point, 255) {
-                                None => 0,
-                                Some(count) => 255 - count as u8
-                            };
+                        let point = pixel_to_point(bounds, (column, row), upper_left, lower_right);
+                        pixels[row * bounds.0 + column] = match escape_time(point, 255) {
+                            None => 0,
+                            Some(count) => 255 - count as u8,
+                        };
                     }
                 }
             }
 
             {
-                let bands: Vec<(usize, &mut [u8])> = pixels
-                    .chunks_mut(BOUNDS.0)
-                    .enumerate()
-                    .collect();
+                let bands: Vec<(usize, &mut [u8])> =
+                    pixels.chunks_mut(BOUNDS.0).enumerate().collect();
 
-                bands.into_par_iter()
-                    .for_each(|(i, band)| {
-                        let top = i;
-                        let band_bounds = (BOUNDS.0, 1);
-                        let band_upper_left = pixel_to_point(BOUNDS, (0, top),
-                                                             UL, LR);
-                        let band_lower_right = pixel_to_point(BOUNDS, (BOUNDS.0, top + 1),
-                                                              UL, LR);
-                        black_box(render(band, band_bounds, band_upper_left, band_lower_right));
-                    });
+                bands.into_par_iter().for_each(|(i, band)| {
+                    let top = i;
+                    let band_bounds = (BOUNDS.0, 1);
+                    let band_upper_left = pixel_to_point(BOUNDS, (0, top), UL, LR);
+                    let band_lower_right = pixel_to_point(BOUNDS, (BOUNDS.0, top + 1), UL, LR);
+                    black_box(render(band, band_bounds, band_upper_left, band_lower_right));
+                });
             }
             black_box(pixels);
         });
@@ -143,15 +129,7 @@ mod benches {
                             // 提前更新进度，防止其他线程重复计算
                             task.fetch_add_start(1);
                             for y in 0..BOUNDS.1 {
-                                let e = escape_time(
-                                    pixel_to_point(
-                                        BOUNDS,
-                                        (i, y),
-                                        UL,
-                                        LR,
-                                    ),
-                                    100,
-                                );
+                                let e = escape_time(pixel_to_point(BOUNDS, (i, y), UL, LR), 100);
                                 results.push((i, y, e));
                             }
                             for d in results.drain(..) {
