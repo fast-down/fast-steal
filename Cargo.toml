@@ -25,3 +25,12 @@ default = ["std"]
 [[bench]]
 name = "fib"
 path = "benches/fib.rs"
+
+[[bench]]
+name = "mandelbrot"
+path = "benches/mandelbrot.rs"
+
+[dev-dependencies]
+num = "0.4.3"
+num_cpus = "1.16.0"
+rayon = "1.10.0"
