@@ -131,7 +131,7 @@ mod benches {
             let (tx, rx) = mpsc::channel();
             let tasks_clone = tasks.clone();
             let handles = tasks.clone().spawn(
-                24,
+                16,
                 |executor| thread::spawn(move || executor.run()),
                 action::from_fn(move |id, task, refresh| {
                     // use `action::from_fn` for type inference
