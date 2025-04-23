@@ -1,4 +1,5 @@
 use crate::task::Task;
+use core::sync::atomic::Ordering;
 
 pub trait SplitTask {
     fn split_task(&self, n: usize) -> impl Iterator<Item = Task>;
@@ -21,10 +22,20 @@ impl SplitTask for Task {
 
     fn split_two(&self) -> (usize, usize) {
         let start = self.start();
-        let end = self.end();
-        let mid = (start + end) / 2;
-        self.set_end(mid);
-        (mid, end)
+        let mut end = self.end();
+
+        loop {
+            let mid = (start + end) / 2;
+            match self
+                .end
+                .compare_exchange(end, mid, Ordering::Acquire, Ordering::Acquire)
+            {
+                Ok(_) => break (mid, end),
+                Err(new_end) => {
+                    end = new_end;
+                }
+            }
+        }
     }
 }
 

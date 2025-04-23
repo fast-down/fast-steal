@@ -1,51 +1,47 @@
 extern crate alloc;
+use core::mem::ManuallyDrop;
+
+use crate::action::Action;
+use crate::executor::Executor;
 use crate::{split_task::SplitTask, task::Task, task_list::TaskList};
-use alloc::{boxed::Box, sync::Arc, vec::Vec};
-extern crate std;
+use alloc::{sync::Arc, vec::Vec};
 
 pub trait Spawn {
     fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
     where
-        S: Fn(Box<dyn FnOnce() + Send>) -> R,
-        F: FnOnce(usize, Arc<Task>, &dyn Fn() -> bool) + Send + Clone + 'static;
+        S: Fn(Executor<F>) -> R,
+        F: Action;
 }
 
 impl Spawn for Arc<TaskList> {
     fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
     where
-        S: Fn(Box<dyn FnOnce() + Send>) -> R,
-        F: FnOnce(usize, Arc<Task>, &dyn Fn() -> bool) + Send + Clone + 'static,
+        S: Fn(Executor<F>) -> R,
+        F: Action,
     {
-        let tasks: Arc<Vec<Arc<Task>>> = Arc::new(
+        let bump = Arc::pin(bumpalo::Bump::with_capacity(
+            threads * size_of::<Task>() + 10,
+        ));
+        let task_ptrs: Arc<[*const Task]> = Arc::from(
             Task::from(&*self)
                 .split_task(threads)
-                .map(|t| Arc::new(t))
-                .collect(),
+                .map(|t| bump.alloc(t) as *const Task)
+                .collect::<Vec<*const Task>>(),
         );
-        let mutex = Arc::new(std::sync::Mutex::new(()));
+        let mutex = Arc::new(spin::Mutex::new(()));
         let mut handles = Vec::with_capacity(threads);
         for id in 0..threads {
-            let tasks = tasks.clone();
+            let task_ptrs = task_ptrs.clone();
             let action = action.clone();
             let mutex = mutex.clone();
-            let handle = spawn(Box::new(move || {
-                action(id, tasks[id].clone(), &|| {
-                    let _lock = mutex.lock().unwrap();
-                    let (max_pos, max_remain) = tasks
-                        .iter()
-                        .enumerate()
-                        .map(|(i, w)| (i, w.remain()))
-                        .max_by_key(|(_, remain)| *remain)
-                        .unwrap();
-                    if max_remain < 2 {
-                        return false;
-                    }
-                    let (start, end) = tasks[max_pos].split_two();
-                    tasks[id].set_end(end);
-                    tasks[id].set_start(start);
-                    true
-                })
-            }));
+            let bump = bump.clone();
+            let handle = spawn(Executor {
+                bump,
+                id,
+                action,
+                mutex,
+                task_ptrs: ManuallyDrop::new(task_ptrs),
+            });
             handles.push(handle);
         }
         handles
@@ -56,6 +52,7 @@ impl Spawn for Arc<TaskList> {
 mod tests {
     extern crate std;
     use super::*;
+    use crate::action;
     use std::{
         collections::{HashMap, hash_map::Entry},
         dbg,
@@ -87,19 +84,19 @@ mod tests {
         let tasks_clone = tasks.clone();
         let handles = tasks.clone().spawn(
             8,
-            |closure| thread::spawn(move || closure()),
-            move |_, task, get_task| {
+            |executor| thread::spawn(move || executor.run()),
+            action::from_fn(move |_, task, refresh| {
                 loop {
                     while task.start() < task.end() {
                         let i = tasks_clone.get(task.start());
                         task.fetch_add_start(1);
                         tx.send((i, fib(i))).unwrap();
                     }
-                    if !get_task() {
+                    if !refresh() {
                         break;
                     }
                 }
-            },
+            }),
         );
         // 汇总任务结果
         let mut data = HashMap::new();
@@ -134,8 +131,8 @@ mod tests {
         let tasks_clone = tasks.clone();
         let handles = tasks.clone().spawn(
             8,
-            |closure| thread::spawn(move || closure()),
-            move |_, task, get_task| {
+            |executor| thread::spawn(move || executor.run()),
+            action::from_fn(move |_, task, get_task| {
                 loop {
                     while task.start() < task.end() {
                         let i = tasks_clone.get(task.start());
@@ -151,7 +148,7 @@ mod tests {
                         break;
                     }
                 }
-            },
+            }),
         );
         // 汇总任务结果
         let mut data = HashMap::new();
@@ -186,8 +183,8 @@ mod tests {
         let tasks_clone = tasks.clone();
         let handles = tasks.clone().spawn(
             8,
-            |closure| thread::spawn(move || closure()),
-            move |_, task, get_task| {
+            |executor| thread::spawn(move || executor.run()),
+            action::from_fn(move |_, task, get_task| {
                 loop {
                     while task.start() < task.end() {
                         let i = tasks_clone.get(task.start());
@@ -207,7 +204,7 @@ mod tests {
                         break;
                     }
                 }
-            },
+            }),
         );
         // 汇总任务结果
         let mut data = HashMap::new();
@@ -242,8 +239,8 @@ mod tests {
         let tasks_clone = tasks.clone();
         let handles = tasks.clone().spawn(
             8,
-            |closure| thread::spawn(move || closure()),
-            move |_, task, get_task| {
+            |executor| thread::spawn(move || executor.run()),
+            action::from_fn(move |_, task, get_task| {
                 loop {
                     while task.start() < task.end() {
                         let i = tasks_clone.get(task.start());
@@ -268,7 +265,7 @@ mod tests {
                         break;
                     }
                 }
-            },
+            }),
         );
         // 汇总任务结果
         let mut data = HashMap::new();

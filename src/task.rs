@@ -6,19 +6,19 @@ use core::{
 
 #[derive(Debug)]
 pub struct Task {
-    start: AtomicUsize,
-    end: AtomicUsize,
+    pub(crate) start: AtomicUsize,
+    pub(crate) end: AtomicUsize,
 }
 
 impl Task {
     pub fn remain(&self) -> usize {
         let start = self.start();
         let end = self.end();
-        if start >= end { 0 } else { end - start }
+        end.checked_sub(start).unwrap_or(0)
     }
 
     pub fn start(&self) -> usize {
-        self.start.load(Ordering::Acquire)
+        self.start.load(Ordering::SeqCst)
     }
     pub fn set_start(&self, start: usize) {
         self.start.store(start, Ordering::Release);
@@ -30,7 +30,7 @@ impl Task {
         self.start.fetch_sub(value, Ordering::AcqRel)
     }
     pub fn end(&self) -> usize {
-        self.end.load(Ordering::Acquire)
+        self.end.load(Ordering::Relaxed)
     }
     pub fn set_end(&self, end: usize) {
         self.end.store(end, Ordering::Release);
