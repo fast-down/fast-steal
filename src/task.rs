@@ -18,7 +18,7 @@ impl Task {
     }
 
     pub fn start(&self) -> usize {
-        self.start.load(Ordering::SeqCst)
+        self.start.load(Ordering::Acquire)
     }
     pub fn set_start(&self, start: usize) {
         self.start.store(start, Ordering::Release);
@@ -30,7 +30,7 @@ impl Task {
         self.start.fetch_sub(value, Ordering::AcqRel)
     }
     pub fn end(&self) -> usize {
-        self.end.load(Ordering::Relaxed)
+        self.end.load(Ordering::Acquire)
     }
     pub fn set_end(&self, end: usize) {
         self.end.store(end, Ordering::Release);

@@ -1,6 +1,5 @@
-use core::ops::Range;
-extern crate alloc;
 use alloc::vec::Vec;
+use core::ops::Range;
 
 pub struct TaskList {
     tasks: Vec<Range<usize>>,
@@ -11,14 +10,11 @@ pub struct TaskList {
 impl From<Vec<Range<usize>>> for TaskList {
     fn from(tasks: Vec<Range<usize>>) -> Self {
         let mut len = 0;
-        let start_point = tasks
-            .iter()
-            .map(|item| {
-                let len1 = len;
-                len += item.len();
-                len1
-            })
-            .collect::<Vec<_>>();
+        let mut start_point = Vec::with_capacity(tasks.len());
+        for range in &tasks {
+            start_point.push(len);
+            len += range.len();
+        }
         Self {
             tasks,
             start_point,

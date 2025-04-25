@@ -1,10 +1,8 @@
-extern crate alloc;
-use core::mem::ManuallyDrop;
-
 use crate::action::Action;
 use crate::executor::Executor;
 use crate::{split_task::SplitTask, task::Task, task_list::TaskList};
 use alloc::{sync::Arc, vec::Vec};
+use core::mem::ManuallyDrop;
 
 pub trait Spawn {
     fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
@@ -34,9 +32,7 @@ impl Spawn for Arc<TaskList> {
             let task_ptrs = task_ptrs.clone();
             let action = action.clone();
             let mutex = mutex.clone();
-            let bump = bump.clone();
             let handle = spawn(Executor {
-                bump,
                 id,
                 action,
                 mutex,

@@ -15,22 +15,6 @@ categories = ["concurrency", "no-std"]
 
 [dependencies]
 bumpalo = "3.17.0"
-spin = { version = "0.10.0", default-features = false, features = ["mutex", "spin_mutex", "fair_mutex"] }
-
-[features]
-std = ["spin/std"]
-
-default = ["std"]
-
-[[bench]]
-name = "fib"
-path = "benches/fib.rs"
-
-[[bench]]
-name = "mandelbrot"
-path = "benches/mandelbrot.rs"
-
-[dev-dependencies]
-num = "0.4.3"
-num_cpus = "1.16.0"
-rayon = "1.10.0"
+spin = { version = "0.10.0", default-features = false, features = [
+  "spin_mutex",
+] }

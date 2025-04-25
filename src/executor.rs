@@ -1,14 +1,10 @@
-use core::{marker::PhantomData, mem::ManuallyDrop, pin::Pin};
-
 use crate::action::Action;
-use alloc::sync::Arc;
-use bumpalo::Bump;
-
 use crate::{SplitTask, Task};
+use alloc::sync::Arc;
+use core::mem::ManuallyDrop;
 use spin::Mutex;
 
 pub struct Executor<A: Action> {
-    pub(crate) bump: Pin<Arc<Bump>>, // Bump should not be moved
     pub(crate) action: A,
     pub(crate) task_ptrs: ManuallyDrop<Arc<[*const Task]>>, // use pointer to bypass borrow checker
     pub(crate) id: usize,

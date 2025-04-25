@@ -1,5 +1,4 @@
 use crate::Task;
-use alloc::sync::Arc;
 
 type RefreshFn<'a> = &'a dyn Fn() -> bool;
 type CurrentTask<'a> = &'a Task;
@@ -11,8 +10,7 @@ pub trait Action: Send + Clone + 'static {
 impl<T: FnOnce(usize, CurrentTask, RefreshFn) + Send + Clone + 'static> Action for T {
     #[inline(always)]
     fn execute(&self, id: usize, task: CurrentTask, refresh: RefreshFn) {
-        let cloned = self.clone();
-        cloned(id, task, refresh);
+        self.clone()(id, task, refresh);
     }
 }
 
