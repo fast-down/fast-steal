@@ -11,13 +11,13 @@
 //!
 //! ## 优势
 //!
-//！1. no_std 支持，不依赖于标准库
-//！2. 零拷贝
-//！3. 安全的 Rust 代码
-//！4. 超细颗粒度任务窃取，速度非常快
+//! 1. no_std 支持，不依赖于标准库
+//! 2. 零拷贝
+//! 3. 安全的 Rust 代码
+//! 4. 超细颗粒度任务窃取，速度非常快
 //!
 //! ```rust
-//! use fast_steal::{Spawn, TaskList, action};
+//! use fast_steal::{Spawn, TaskList};
 //! use std::{
 //!     collections::{HashMap, hash_map::Entry},
 //!     sync::{Arc, mpsc},
@@ -47,8 +47,8 @@
 //!     let tasks_clone = tasks.clone();
 //!     let handles = tasks.clone().spawn(
 //!         8,
-//!         |executor| thread::spawn(move || executor.run()),
-//!         action::from_fn(move |id, task, refresh| { // use `action::from_fn` for type inference
+//!         |closure| thread::spawn(move || closure()),
+//!         move |id, task, get_task| {
 //!             loop {
 //!                 // 必须在每次循环开始判断 task.start() < task.end()，因为其他线程可能会修改 task
 //!                 while task.start() < task.end() {
@@ -59,11 +59,11 @@
 //!                     tx.send((i, fib(i))).unwrap();
 //!                 }
 //!                 // 检查是否还有任务
-//!                 if !refresh() {
+//!                 if !get_task() {
 //!                     break;
 //!                 }
 //!             }
-//!         }),
+//!         },
 //!     );
 //!     // 汇总任务结果
 //!     let mut data = HashMap::new();
