@@ -1,45 +1,30 @@
-use alloc::boxed::Box;
-
 use crate::Task;
-use core::future::Future;
 
-pub type RefreshFn<'a> = Box<dyn Fn() -> bool + Send>;
+pub type RefreshFn<'a> = &'a (dyn Fn() -> bool + Sync);
 pub type CurrentTask<'a> = &'a Task;
 
-pub struct Action<T, R>
-where
-    T: FnOnce(usize, CurrentTask, RefreshFn) -> R + Send + Sync + Clone + 'static,
-    R: Future<Output = ()> + Send + Sync,
-{
-    f: T,
+pub trait Action: Send + Clone + 'static {
+    fn execute(&self, id: usize, task: CurrentTask, refresh: RefreshFn) -> impl Future + Send;
 }
 
-impl<T, R> Action<T, R>
+impl<T, R> Action for T
 where
-    T: FnOnce(usize, CurrentTask, RefreshFn) -> R + Send + Sync + Clone + 'static,
-    R: Future<Output = ()> + Send + Sync,
+    T: FnOnce(usize, CurrentTask, RefreshFn) -> R + Send + Clone + 'static,
+    R: Future + Send,
 {
-    pub fn new(f: T) -> Action<T, R> {
-        Action { f }
-    }
-
     #[inline(always)]
-    pub fn execute(
-        &self,
-        id: usize,
-        task: CurrentTask,
-        refresh: RefreshFn,
-    ) -> impl Future<Output = ()> + Send {
-        self.f.clone()(id, task, refresh)
+    fn execute(&self, id: usize, task: CurrentTask, refresh: RefreshFn) -> impl Future + Send {
+        self.clone()(id, task, refresh)
     }
 }
 
-impl<T, R> Clone for Action<T, R>
+// provide type inference
+/// Create `Action` implementation from `FnOnce`
+#[inline]
+pub fn from_fn<T, R>(f: T) -> impl Action
 where
-    T: FnOnce(usize, CurrentTask, RefreshFn) -> R + Send + Sync + Clone + 'static,
-    R: Future<Output = ()> + Send + Sync,
+    T: FnOnce(usize, CurrentTask, RefreshFn) -> R + Send + Clone + 'static,
+    R: Future + Send,
 {
-    fn clone(&self) -> Self {
-        Self { f: self.f.clone() }
-    }
+    f
 }
