@@ -1,7 +1,6 @@
 use super::action::{Action, CurrentTask, RefreshFn};
 use crate::{SplitTask, Task};
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
-use core::mem::ManuallyDrop;
 use tokio::sync::Mutex;
 
 pub struct Executor<T, R>
