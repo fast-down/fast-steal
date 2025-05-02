@@ -14,7 +14,18 @@ keywords = ["parallel", "thread", "concurrency", "performance", "no-std"]
 categories = ["concurrency", "no-std"]
 
 [dependencies]
+async-trait = { version = "0.1.88", optional = true }
 bumpalo = "3.17.0"
 spin = { version = "0.10.0", default-features = false, features = [
   "spin_mutex",
+], optional = true }
+tokio = { version = "1", optional = true, default-features = false, features = [
+  "sync",
+  "rt",
+  "macros",
 ] }
+
+[features]
+default = ["sync", "tokio"]
+tokio = ["dep:tokio", "dep:async-trait"]
+sync = ["dep:spin"]

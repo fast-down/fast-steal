@@ -94,14 +94,15 @@
 
 extern crate alloc;
 
-pub mod action;
-pub mod executor;
-mod spawn;
 mod split_task;
 mod task;
 mod task_list;
 
-pub use spawn::Spawn;
 pub use split_task::SplitTask;
 pub use task::Task;
 pub use task_list::TaskList;
+
+#[cfg(feature = "sync")]
+pub mod sync;
+#[cfg(feature = "tokio")]
+pub mod tokio;

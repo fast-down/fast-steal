@@ -1,5 +1,5 @@
-use crate::action::Action;
-use crate::executor::Executor;
+use super::action::Action;
+use super::executor::Executor;
 use crate::{split_task::SplitTask, task::Task, task_list::TaskList};
 use alloc::{sync::Arc, vec::Vec};
 use core::mem::ManuallyDrop;
@@ -48,7 +48,7 @@ impl Spawn for Arc<TaskList> {
 mod tests {
     extern crate std;
     use super::*;
-    use crate::action;
+    use crate::sync::action;
     use std::{
         collections::{HashMap, hash_map::Entry},
         dbg,

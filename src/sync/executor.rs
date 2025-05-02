@@ -1,4 +1,4 @@
-use crate::action::Action;
+use super::action::Action;
 use crate::{SplitTask, Task};
 use alloc::sync::Arc;
 use core::mem::ManuallyDrop;
@@ -40,7 +40,7 @@ impl<A: Action> Executor<A> {
     }
 
     #[inline]
-    pub fn run(self) {
+    pub fn run(&self) {
         let task = self.get();
         self.action.execute(self.id, task, &|| {
             let _guard = self.mutex.lock();
@@ -57,7 +57,6 @@ impl<A: Action> Executor<A> {
             let (start, end) = unsafe { &*self.task_ptrs[max_pos] }.split_two();
             task.set_end(end);
             task.set_start(start);
-            drop(_guard);
             true
         })
     }

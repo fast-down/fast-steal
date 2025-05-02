@@ -7,7 +7,10 @@ pub trait Action: Send + Clone + 'static {
     fn execute(&self, id: usize, task: CurrentTask, refresh: RefreshFn);
 }
 
-impl<T: FnOnce(usize, CurrentTask, RefreshFn) + Send + Clone + 'static> Action for T {
+impl<T> Action for T
+where
+    T: FnOnce(usize, CurrentTask, RefreshFn) + Send + Clone + 'static,
+{
     #[inline(always)]
     fn execute(&self, id: usize, task: CurrentTask, refresh: RefreshFn) {
         self.clone()(id, task, refresh);
