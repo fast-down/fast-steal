@@ -11,9 +11,7 @@
 ## 优势
 
 1. no_std 支持，不依赖于标准库
-2. 零拷贝
-3. 安全的 Rust 代码
-4. 超细颗粒度任务窃取，速度非常快
+2. 超细颗粒度任务窃取，速度非常快
 
 ```rust
 use fast_steal::{Spawn, TaskList, action};
