@@ -87,7 +87,7 @@ mod tests {
                         task.fetch_add_start(1);
                         tx.send((i, fib(i))).unwrap();
                     }
-                    if !refresh().await {
+                    if refresh().await {
                         break;
                     }
                 }
