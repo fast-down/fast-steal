@@ -43,8 +43,8 @@ impl<A: Action> Executor<A> {
     pub async fn run(&self) {
         let task = self.get().await;
         self.action
-            .execute(self.id, task, &|| {
-                let _guard = self.mutex.lock();
+            .execute(self.id, task, &async || {
+                let _guard = self.mutex.lock().await;
                 let (max_pos, max_remain) = self
                     .task_ptrs
                     .iter()
