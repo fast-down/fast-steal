@@ -1,6 +1,8 @@
 use crate::Task;
+use alloc::boxed::Box;
+use core::pin::Pin;
 
-pub type RefreshFn<'a> = &'a (dyn Fn() -> bool + Sync);
+pub type RefreshFn<'a> = &'a (dyn Fn() -> Pin<Box<dyn Future<Output = bool>>> + Sync);
 pub type CurrentTask<'a> = &'a Task;
 
 pub trait Action: Send + Clone + 'static {

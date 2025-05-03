@@ -1,6 +1,6 @@
 use super::action::Action;
 use crate::{SplitTask, Task};
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
 use core::mem::ManuallyDrop;
 use tokio::sync::Mutex;
 
@@ -39,27 +39,30 @@ impl<A: Action> Executor<A> {
         unsafe { self.task_ptrs[self.id].as_ref() }.unwrap()
     }
 
+    #[inline(always)]
+    async fn refresh(&self, task: &Task) -> bool {
+        let _guard = self.mutex.lock().await;
+        let (max_pos, max_remain) = self
+            .task_ptrs
+            .iter()
+            .enumerate()
+            .map(|(i, w)| (i, unsafe { &**w }.remain()))
+            .max_by_key(|(_, remain)| *remain)
+            .unwrap();
+        if max_remain < 2 {
+            return false;
+        }
+        let (start, end) = unsafe { &*self.task_ptrs[max_pos] }.split_two();
+        task.set_end(end);
+        task.set_start(start);
+        true
+    }
+
     #[inline]
     pub async fn run(&self) {
         let task = self.get().await;
         self.action
-            .execute(self.id, task, &async || {
-                let _guard = self.mutex.lock().await;
-                let (max_pos, max_remain) = self
-                    .task_ptrs
-                    .iter()
-                    .enumerate()
-                    .map(|(i, w)| (i, unsafe { &**w }.remain()))
-                    .max_by_key(|(_, remain)| *remain)
-                    .unwrap();
-                if max_remain < 2 {
-                    return false;
-                }
-                let (start, end) = unsafe { &*self.task_ptrs[max_pos] }.split_two();
-                task.set_end(end);
-                task.set_start(start);
-                true
-            })
+            .execute(self.id, task, &|| Box::pin(self.refresh(task)))
             .await;
     }
 }
