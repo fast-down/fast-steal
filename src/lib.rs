@@ -15,7 +15,7 @@
 //! 2. 超细颗粒度任务窃取，速度非常快
 //!
 //! ```rust
-//! use fast_steal::{Spawn, TaskList, action};
+//! use fast_steal::{sync::Spawn, TaskList, sync::action};
 //! use std::{
 //!     collections::{HashMap, hash_map::Entry},
 //!     sync::{Arc, mpsc},

@@ -32,7 +32,9 @@ impl Spawn for Arc<TaskList> {
             let task_ptrs = task_ptrs.clone();
             let action = action.clone();
             let mutex = mutex.clone();
+            let bump = bump.clone();
             let handle = spawn(Executor {
+                bump,
                 id,
                 action,
                 mutex,

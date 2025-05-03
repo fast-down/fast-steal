@@ -1,10 +1,13 @@
 use super::action::Action;
 use crate::{SplitTask, Task};
 use alloc::sync::Arc;
-use core::mem::ManuallyDrop;
+use bumpalo::Bump;
+use core::{mem::ManuallyDrop, pin::Pin};
 use spin::Mutex;
 
 pub struct Executor<A: Action> {
+    #[allow(dead_code)]
+    pub(crate) bump: Pin<Arc<Bump>>,
     pub(crate) action: A,
     pub(crate) task_ptrs: ManuallyDrop<Arc<[*const Task]>>, // use pointer to bypass borrow checker
     pub(crate) id: usize,
