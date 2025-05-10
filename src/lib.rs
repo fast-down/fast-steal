@@ -90,8 +90,6 @@
 //! }
 //! ```
 
-extern crate alloc;
-
 mod split_task;
 mod task;
 mod task_list;

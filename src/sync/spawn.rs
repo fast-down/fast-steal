@@ -1,8 +1,11 @@
+extern crate alloc;
 use super::action::Action;
 use super::executor::Executor;
 use crate::{split_task::SplitTask, task::Task, task_list::TaskList};
 use alloc::{sync::Arc, vec::Vec};
+use bumpalo::Bump;
 use core::mem::ManuallyDrop;
+use spin::Mutex;
 
 pub trait Spawn {
     fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
@@ -17,16 +20,14 @@ impl Spawn for Arc<TaskList> {
         S: Fn(Executor<F>) -> R,
         F: Action,
     {
-        let bump = Arc::pin(bumpalo::Bump::with_capacity(
-            threads * size_of::<Task>() + 10,
-        ));
+        let bump = Arc::pin(Bump::with_capacity(threads * size_of::<Task>() + 10));
         let task_ptrs: Arc<[*const Task]> = Arc::from(
             Task::from(&*self)
                 .split_task(threads)
                 .map(|t| bump.alloc(t) as *const Task)
                 .collect::<Vec<*const Task>>(),
         );
-        let mutex = Arc::new(spin::Mutex::new(()));
+        let mutex = Arc::new(Mutex::new(()));
         let mut handles = Vec::with_capacity(threads);
         for id in 0..threads {
             let task_ptrs = task_ptrs.clone();
@@ -34,10 +35,10 @@ impl Spawn for Arc<TaskList> {
             let mutex = mutex.clone();
             let bump = bump.clone();
             let handle = spawn(Executor {
-                bump,
                 id,
                 action,
                 mutex,
+                bump,
                 task_ptrs: ManuallyDrop::new(task_ptrs),
             });
             handles.push(handle);

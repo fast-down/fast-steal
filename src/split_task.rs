@@ -7,7 +7,7 @@ pub trait SplitTask {
 
 impl SplitTask for Task {
     fn split_task(&self, n: usize) -> impl Iterator<Item = Task> {
-        assert!(n > 0, "n must be greater than 0");
+        debug_assert!(n > 0, "n must be greater than 0");
         let total = self.remain();
         let offset = self.start();
         let per_group = total / n;

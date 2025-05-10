@@ -1,6 +1,8 @@
+extern crate alloc;
 use alloc::vec::Vec;
 use core::ops::Range;
 
+#[derive(Debug)]
 pub struct TaskList {
     tasks: Vec<Range<usize>>,
     start_point: Vec<usize>,
@@ -43,7 +45,7 @@ impl TaskList {
         let start_seg = self.position(range.start);
         let end_seg = self.position(range.end - 1);
         let tasks_len = self.tasks.len();
-        let mut result = Vec::with_capacity(end_seg + 1 - start_seg);
+        let mut result = Vec::with_capacity(end_seg - start_seg + 1);
 
         for seg in start_seg..=end_seg {
             // 获取当前段的全局索引范围

@@ -1,3 +1,4 @@
+extern crate alloc;
 use super::action::Action;
 use crate::{SplitTask, Task};
 use alloc::sync::Arc;
@@ -36,15 +37,9 @@ impl<A: Action> Drop for Executor<A> {
 }
 
 impl<A: Action> Executor<A> {
-    #[inline(always)]
-    fn get(&self) -> &Task {
-        let _guard = self.mutex.lock();
-        unsafe { self.task_ptrs[self.id].as_ref() }.unwrap()
-    }
-
     #[inline]
     pub fn run(&self) {
-        let task = self.get();
+        let task = unsafe { self.task_ptrs[self.id].as_ref() }.unwrap();
         self.action.execute(self.id, task, &|| {
             let _guard = self.mutex.lock();
             let (max_pos, max_remain) = self
