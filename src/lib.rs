@@ -45,6 +45,7 @@
 //!     let tasks_clone = tasks.clone();
 //!     let handles = tasks.clone().spawn(
 //!         8,
+//!         2,
 //!         |executor| thread::spawn(move || executor.run()),
 //!         action::from_fn(move |id, task, refresh| { // use `action::from_fn` for type inference
 //!             loop {
