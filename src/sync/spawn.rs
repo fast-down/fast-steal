@@ -8,14 +8,14 @@ use core::mem::ManuallyDrop;
 use spin::Mutex;
 
 pub trait Spawn {
-    fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
+    fn spawn<S, R, F>(self, threads: usize, min_chunk_size: usize, spawn: S, action: F) -> Vec<R>
     where
         S: Fn(Executor<F>) -> R,
         F: Action;
 }
 
 impl Spawn for Arc<TaskList> {
-    fn spawn<S, R, F>(self, threads: usize, spawn: S, action: F) -> Vec<R>
+    fn spawn<S, R, F>(self, threads: usize, min_chunk_size: usize, spawn: S, action: F) -> Vec<R>
     where
         S: Fn(Executor<F>) -> R,
         F: Action,
@@ -39,6 +39,7 @@ impl Spawn for Arc<TaskList> {
                 action,
                 mutex,
                 bump,
+                min_chunk_size,
                 task_ptrs: ManuallyDrop::new(task_ptrs),
             });
             handles.push(handle);
@@ -83,6 +84,7 @@ mod tests {
         let tasks_clone = tasks.clone();
         let handles = tasks.clone().spawn(
             8,
+            2,
             |executor| thread::spawn(move || executor.run()),
             action::from_fn(move |_, task, refresh| {
                 loop {
@@ -130,6 +132,7 @@ mod tests {
         let tasks_clone = tasks.clone();
         let handles = tasks.clone().spawn(
             8,
+            2,
             |executor| thread::spawn(move || executor.run()),
             action::from_fn(move |_, task, get_task| {
                 loop {
@@ -182,6 +185,7 @@ mod tests {
         let tasks_clone = tasks.clone();
         let handles = tasks.clone().spawn(
             8,
+            2,
             |executor| thread::spawn(move || executor.run()),
             action::from_fn(move |_, task, get_task| {
                 loop {
@@ -238,6 +242,7 @@ mod tests {
         let tasks_clone = tasks.clone();
         let handles = tasks.clone().spawn(
             8,
+            2,
             |executor| thread::spawn(move || executor.run()),
             action::from_fn(move |_, task, get_task| {
                 loop {

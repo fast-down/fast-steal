@@ -12,6 +12,7 @@ pub struct Executor<A: Action> {
     pub(crate) action: A,
     pub(crate) task_ptrs: ManuallyDrop<Arc<[*const Task]>>, // use pointer to bypass borrow checker
     pub(crate) id: usize,
+    pub(crate) min_chunk_size: usize,
     pub(crate) mutex: Arc<Mutex<()>>,
 }
 
@@ -49,7 +50,7 @@ impl<A: Action> Executor<A> {
                 .map(|(i, w)| (i, unsafe { &**w }.remain()))
                 .max_by_key(|(_, remain)| *remain)
                 .unwrap();
-            if max_remain < 2 {
+            if max_remain < self.min_chunk_size {
                 return false;
             }
             let (start, end) = unsafe { &*self.task_ptrs[max_pos] }.split_two();
