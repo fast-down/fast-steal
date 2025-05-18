@@ -1,12 +1,12 @@
 use crate::task::Task;
 
 pub trait SplitTask {
-    fn split_task(&self, n: usize) -> impl Iterator<Item = Task>;
-    fn split_two(&self) -> (usize, usize);
+    fn split_task(&self, n: u64) -> impl Iterator<Item = Task>;
+    fn split_two(&self) -> (u64, u64);
 }
 
 impl SplitTask for Task {
-    fn split_task(&self, n: usize) -> impl Iterator<Item = Task> {
+    fn split_task(&self, n: u64) -> impl Iterator<Item = Task> {
         debug_assert!(n > 0, "n must be greater than 0");
         let total = self.remain();
         let offset = self.start();
@@ -19,7 +19,7 @@ impl SplitTask for Task {
         })
     }
 
-    fn split_two(&self) -> (usize, usize) {
+    fn split_two(&self) -> (u64, u64) {
         let start = self.start();
         let end = self.end();
         let mid = (start + end) / 2;

@@ -4,18 +4,18 @@ use core::ops::Range;
 
 #[derive(Debug)]
 pub struct TaskList {
-    tasks: Vec<Range<usize>>,
-    start_point: Vec<usize>,
-    pub len: usize,
+    tasks: Vec<Range<u64>>,
+    start_point: Vec<u64>,
+    pub len: u64,
 }
 
-impl From<Vec<Range<usize>>> for TaskList {
-    fn from(tasks: Vec<Range<usize>>) -> Self {
+impl From<Vec<Range<u64>>> for TaskList {
+    fn from(tasks: Vec<Range<u64>>) -> Self {
         let mut len = 0;
         let mut start_point = Vec::with_capacity(tasks.len());
         for range in &tasks {
             start_point.push(len);
-            len += range.len();
+            len += range.end - range.start;
         }
         Self {
             tasks,
@@ -27,17 +27,17 @@ impl From<Vec<Range<usize>>> for TaskList {
 
 impl TaskList {
     #[inline(always)]
-    pub fn position(&self, index: usize) -> usize {
+    pub fn position(&self, index: u64) -> usize {
         self.start_point.partition_point(|&x| x <= index) - 1
     }
 
     #[inline]
-    pub fn get(&self, index: usize) -> usize {
+    pub fn get(&self, index: u64) -> u64 {
         let point = self.position(index);
         self.tasks[point].start + index - self.start_point[point]
     }
 
-    pub fn get_range(&self, range: Range<usize>) -> Vec<Range<usize>> {
+    pub fn get_range(&self, range: Range<u64>) -> Vec<Range<u64>> {
         if range.is_empty() {
             return Vec::new();
         }

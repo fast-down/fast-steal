@@ -21,7 +21,7 @@ use std::{
     thread,
 };
 
-fn fib(n: usize) -> usize {
+fn fib(n: u64) -> u64 {
     match n {
         0 => 0,
         1 => 1,
@@ -29,7 +29,7 @@ fn fib(n: usize) -> usize {
     }
 }
 
-fn fib_fast(n: usize) -> usize {
+fn fib_fast(n: u64) -> u64 {
     let mut a = 0;
     let mut b = 1;
     for _ in 0..n {

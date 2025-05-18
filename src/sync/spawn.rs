@@ -23,7 +23,7 @@ impl Spawn for Arc<TaskList> {
         let bump = Arc::pin(Bump::with_capacity(threads * size_of::<Task>() + 10));
         let task_ptrs: Arc<[*const Task]> = Arc::from(
             Task::from(&*self)
-                .split_task(threads)
+                .split_task(threads as u64)
                 .map(|t| bump.alloc(t) as *const Task)
                 .collect::<Vec<*const Task>>(),
         );
@@ -59,7 +59,7 @@ mod tests {
         thread, vec,
     };
 
-    fn fib(n: usize) -> usize {
+    fn fib(n: u64) -> u64 {
         match n {
             0 => 0,
             1 => 1,
@@ -67,7 +67,7 @@ mod tests {
         }
     }
 
-    fn fib_fast(n: usize) -> usize {
+    fn fib_fast(n: u64) -> u64 {
         let mut a = 0;
         let mut b = 1;
         for _ in 0..n {
