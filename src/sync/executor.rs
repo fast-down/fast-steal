@@ -12,7 +12,7 @@ pub struct Executor<A: Action> {
     pub(crate) action: A,
     pub(crate) task_ptrs: ManuallyDrop<Arc<[*const Task]>>, // use pointer to bypass borrow checker
     pub(crate) id: usize,
-    pub(crate) min_chunk_size: usize,
+    pub(crate) min_chunk_size: u64,
     pub(crate) mutex: Arc<Mutex<()>>,
 }
 

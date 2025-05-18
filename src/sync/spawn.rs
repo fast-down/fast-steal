@@ -8,14 +8,14 @@ use core::mem::ManuallyDrop;
 use spin::Mutex;
 
 pub trait Spawn {
-    fn spawn<S, R, F>(self, threads: usize, min_chunk_size: usize, spawn: S, action: F) -> Vec<R>
+    fn spawn<S, R, F>(self, threads: usize, min_chunk_size: u64, spawn: S, action: F) -> Vec<R>
     where
         S: Fn(Executor<F>) -> R,
         F: Action;
 }
 
 impl Spawn for Arc<TaskList> {
-    fn spawn<S, R, F>(self, threads: usize, min_chunk_size: usize, spawn: S, action: F) -> Vec<R>
+    fn spawn<S, R, F>(self, threads: usize, min_chunk_size: u64, spawn: S, action: F) -> Vec<R>
     where
         S: Fn(Executor<F>) -> R,
         F: Action,
