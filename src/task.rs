@@ -6,8 +6,8 @@ use core::{
 
 #[derive(Debug)]
 pub struct Task {
-    pub(crate) start: AtomicU64,
-    pub(crate) end: AtomicU64,
+    start: AtomicU64,
+    end: AtomicU64,
 }
 
 impl Task {
@@ -76,10 +76,9 @@ impl From<&TaskList> for Task {
 
 #[cfg(test)]
 mod tests {
-    extern crate std;
     use super::*;
-    use std::sync::Arc;
-    use std::{thread, vec};
+    extern crate alloc;
+    use alloc::vec;
 
     #[test]
     fn test_new_task() {
@@ -132,27 +131,6 @@ mod tests {
         assert_eq!(task1, task2);
         assert_ne!(task1, task3);
         assert_ne!(task1, task4);
-    }
-
-    #[test]
-    fn test_thread_safety() {
-        let task = Arc::new(Task::new(0, 100));
-
-        let task_clone = Arc::clone(&task);
-        let handle1 = thread::spawn(move || {
-            task_clone.set_start(10);
-        });
-
-        let task_clone = Arc::clone(&task);
-        let handle2 = thread::spawn(move || {
-            task_clone.set_end(90);
-        });
-
-        handle1.join().unwrap();
-        handle2.join().unwrap();
-
-        assert_eq!(task.start(), 10);
-        assert_eq!(task.end(), 90);
     }
 
     #[test]

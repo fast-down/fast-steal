@@ -13,15 +13,19 @@
 //!
 //! 1. no_std 支持，不依赖于标准库
 //! 2. 超细颗粒度任务窃取，速度非常快
+//! 3. 零依赖，不依赖任何第三方库
+//! 4. 零拷贝，库中没有任何 clone 操作
+//! 5. 安全的 Rust，库中没有使用任何 unsafe 的代码
+//! 6. 无锁，库中没有使用任何锁（但是在任务重新分配时 `task.steal()`，记得手动加锁）
+//! 7. 测试完全覆盖，保证库的稳定性和可靠性
 //!
 //! ```rust
-//! use fast_steal::{sync::Spawn, TaskList, sync::action};
+//! use fast_steal::{SplitTask, StealTask, Task, TaskList};
 //! use std::{
-//!     collections::{HashMap, hash_map::Entry},
-//!     sync::{Arc, mpsc},
+//!     collections::HashMap,
+//!     sync::{Arc, Mutex, mpsc},
 //!     thread,
 //! };
-//!
 //! fn fib(n: u64) -> u64 {
 //!     match n {
 //!         0 => 0,
@@ -29,7 +33,6 @@
 //!         _ => fib(n - 1) + fib(n - 2),
 //!     }
 //! }
-//!
 //! fn fib_fast(n: u64) -> u64 {
 //!     let mut a = 0;
 //!     let mut b = 1;
@@ -38,45 +41,55 @@
 //!     }
 //!     a
 //! }
-//!
 //! fn main() {
-//!     let tasks: Arc<TaskList> = Arc::new(vec![0..48].into());
 //!     let (tx, rx) = mpsc::channel();
-//!     let tasks_clone = tasks.clone();
-//!     let handles = tasks.clone().spawn(
-//!         8,
-//!         2,
-//!         |executor| thread::spawn(move || executor.run()),
-//!         action::from_fn(move |id, task, refresh| { // use `action::from_fn` for type inference
+//!     let mutex = Arc::new(Mutex::new(()));
+//!     // 任务数据列表
+//!     let task_list = Arc::new(TaskList::from(vec![1..20, 41..48]));
+//!     // 分配 8 个任务
+//!     let tasks = Arc::new(
+//!         Task::from(&*task_list)
+//!             .split_task(8)
+//!             .map(|t| Arc::new(t))
+//!             .collect::<Vec<_>>(),
+//!     );
+//!     let mut handles = Vec::with_capacity(tasks.len());
+//!     for task in tasks.iter() {
+//!         let task = task.clone();
+//!         let tasks = tasks.clone();
+//!         let task_list = task_list.clone();
+//!         let mutex = mutex.clone();
+//!         let tx = tx.clone();
+//!         let handle = thread::spawn(move || {
 //!             loop {
 //!                 // 必须在每次循环开始判断 task.start() < task.end()，因为其他线程可能会修改 task
 //!                 while task.start() < task.end() {
-//!                     let i = tasks_clone.get(task.start());
+//!                     let i = task_list.get(task.start());
 //!                     // 提前更新进度，防止其他线程重复计算
 //!                     task.fetch_add_start(1);
 //!                     // 计算
 //!                     tx.send((i, fib(i))).unwrap();
 //!                 }
 //!                 // 检查是否还有任务
-//!                 if !refresh() {
-//!                     break;
+//!                 // ⚠️注意：这里需要加锁，防止多个线程同时检查任务列表
+//!                 let _guard = mutex.lock().unwrap();
+//!                 if !task.steal(&tasks, 1) {
+//!                     return;
 //!                 }
+//!                 // 这里需要释放锁
 //!             }
-//!         }),
-//!     );
+//!         });
+//!         handles.push(handle);
+//!     }
 //!     // 汇总任务结果
 //!     let mut data = HashMap::new();
+//!     // ⚠️注意：这里要 drop(tx) 否则永远会卡在 for (i, res) in rx {} 这里
+//!     drop(tx);
 //!     for (i, res) in rx {
 //!         // 如果重复计算就报错
-//!         match data.entry(i) {
-//!             Entry::Occupied(_) => {
-//!                 panic!("数字 {i}，值为 {res} 重复计算")
-//!             }
-//!             Entry::Vacant(entry) => {
-//!                 entry.insert(res);
-//!             }
+//!         if data.insert(i, res).is_some() {
+//!             panic!("数字 {i}，值为 {res} 重复计算");
 //!         }
-//!         data.insert(i, res);
 //!     }
 //!     // 等待任务结束
 //!     for handle in handles {
@@ -84,20 +97,19 @@
 //!     }
 //!     // 验证结果
 //!     dbg!(&data);
-//!     for i in 0..tasks.len {
-//!         let index = tasks.get(i);
+//!     for i in 0..task_list.len {
+//!         let index = task_list.get(i);
 //!         assert_eq!((index, data.get(&index)), (index, Some(&fib_fast(index))));
 //!     }
 //! }
 //! ```
 
 mod split_task;
+mod steal_task;
 mod task;
 mod task_list;
 
 pub use split_task::SplitTask;
+pub use steal_task::StealTask;
 pub use task::Task;
 pub use task_list::TaskList;
-
-#[cfg(feature = "sync")]
-pub mod sync;

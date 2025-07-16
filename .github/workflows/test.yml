@@ -24,7 +24,7 @@ jobs:
         run: rustup update ${{ matrix.channel }} && rustup default ${{ matrix.channel }}
 
       - name: Test
-        run: cargo test --all-features
+        run: cargo test --release --all-features
 
   check-minimal:
     name: Check minimal versions
@@ -39,16 +39,3 @@ jobs:
 
       - name: Check minimal versions
         run: cargo check --all --all-targets -Z minimal-versions
-
-  # benches:
-  #   name: Benches
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout sources
-  #       uses: actions/checkout@v4
-
-  #     - name: Install Rust toolchain
-  #       run: rustup default nightly
-
-  #     - name: Default features
-  #       run: cargo bench --no-run

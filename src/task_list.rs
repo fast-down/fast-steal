@@ -74,9 +74,8 @@ impl TaskList {
 
 #[cfg(test)]
 mod tests {
-    extern crate std;
     use super::*;
-    use std::vec;
+    use alloc::vec;
 
     #[test]
     fn test_empty_list() {
