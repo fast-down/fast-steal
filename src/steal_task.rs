@@ -8,6 +8,7 @@ pub trait StealTask {
 
 impl StealTask for Task {
     fn steal<T: Borrow<Self>>(&self, tasks: &[T], min_chunk_size: u64) -> bool {
+        debug_assert!(min_chunk_size > 1, "min_chunk_size must be greater than 1");
         let (max_pos, max_remain) = tasks
             .iter()
             .enumerate()
