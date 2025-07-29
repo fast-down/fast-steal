@@ -14,7 +14,7 @@ impl Task {
     pub fn remain(&self) -> u64 {
         let start = self.start();
         let end = self.end();
-        end.checked_sub(start).unwrap_or(0)
+        end.saturating_sub(start)
     }
 
     pub fn start(&self) -> u64 {

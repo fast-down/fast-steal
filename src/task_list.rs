@@ -85,6 +85,7 @@ mod tests {
 
     #[test]
     fn test_single_range() {
+        #[allow(clippy::single_range_in_vec_init)]
         let tasks = TaskList::from(vec![10..15]);
         assert_eq!(tasks.len, 5);
 
