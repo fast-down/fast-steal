@@ -17,7 +17,6 @@
 5. 安全的 Rust，库中没有使用任何 unsafe 的代码
 6. 无锁，库中没有使用任何锁（但是在任务重新分配时 `task.steal()`，记得手动加锁）
 7. 测试完全覆盖，保证库的稳定性和可靠性
-8. 兼容所有框架，可以无缝集成到任何框架中
 
 ```rust
 use fast_steal::{SplitTask, StealTask, Task, TaskList};
@@ -45,13 +44,12 @@ fn main() {
     let (tx, rx) = mpsc::channel();
     let mutex = Arc::new(Mutex::new(()));
     // 任务数据列表
-    let task_list = Arc::new(TaskList::from(vec![1..20, 41..48]));
+    let task_list = Arc::new(TaskList::from(&[1..20, 41..48][..]));
     // 分配 8 个任务
-    let tasks = Arc::new(
+    let tasks = Arc::from_iter(
         Task::from(&*task_list)
             .split_task(8)
-            .map(|t| Arc::new(t))
-            .collect::<Vec<_>>(),
+            .map(Arc::new)
     );
     let mut handles = Vec::with_capacity(tasks.len());
     for task in tasks.iter() {

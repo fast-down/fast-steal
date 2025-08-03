@@ -45,13 +45,12 @@
 //!     let (tx, rx) = mpsc::channel();
 //!     let mutex = Arc::new(Mutex::new(()));
 //!     // 任务数据列表
-//!     let task_list = Arc::new(TaskList::from(vec![1..20, 41..48]));
+//!     let task_list = Arc::new(TaskList::from(&[1..20, 41..48][..]));
 //!     // 分配 8 个任务
-//!     let tasks = Arc::new(
+//!     let tasks = Arc::from_iter(
 //!         Task::from(&*task_list)
 //!             .split_task(8)
-//!             .map(|t| Arc::new(t))
-//!             .collect::<Vec<_>>(),
+//!             .map(Arc::new)
 //!     );
 //!     let mut handles = Vec::with_capacity(tasks.len());
 //!     for task in tasks.iter() {

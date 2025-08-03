@@ -1,25 +1,25 @@
 extern crate alloc;
-use alloc::vec::Vec;
+use alloc::{sync::Arc, vec::Vec};
 use core::ops::Range;
 
 #[derive(Debug)]
 pub struct TaskList {
-    tasks: Vec<Range<u64>>,
-    start_point: Vec<u64>,
+    tasks: Arc<[Range<u64>]>,
+    start_point: Arc<[u64]>,
     pub len: u64,
 }
 
-impl From<Vec<Range<u64>>> for TaskList {
-    fn from(tasks: Vec<Range<u64>>) -> Self {
+impl From<&[Range<u64>]> for TaskList {
+    fn from(tasks: &[Range<u64>]) -> Self {
         let mut len = 0;
         let mut start_point = Vec::with_capacity(tasks.len());
-        for range in &tasks {
+        for range in tasks {
             start_point.push(len);
             len += range.end - range.start;
         }
         Self {
-            tasks,
-            start_point,
+            tasks: tasks.into(),
+            start_point: start_point.into(),
             len,
         }
     }
@@ -74,19 +74,18 @@ impl TaskList {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::single_range_in_vec_init)]
     use super::*;
-    use alloc::vec;
 
     #[test]
     fn test_empty_list() {
-        let tasks = TaskList::from(vec![]);
+        let tasks = TaskList::from(&[][..]);
         assert_eq!(tasks.len, 0);
     }
 
     #[test]
     fn test_single_range() {
-        #[allow(clippy::single_range_in_vec_init)]
-        let tasks = TaskList::from(vec![10..15]);
+        let tasks = TaskList::from(&[10..15][..]);
         assert_eq!(tasks.len, 5);
 
         assert_eq!(tasks.get(0), 10);
@@ -96,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_multiple_ranges() {
-        let tasks = TaskList::from(vec![10..12, 20..25, 30..35]);
+        let tasks = TaskList::from(&[10..12, 20..25, 30..35][..]);
         assert_eq!(tasks.len, (12 - 10) + (25 - 20) + (35 - 30));
 
         // First range
@@ -115,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_consecutive_ranges() {
-        let tasks = TaskList::from(vec![10..15, 15..20]);
+        let tasks = TaskList::from(&[10..15, 15..20][..]);
         assert_eq!(tasks.len, 10);
 
         assert_eq!(tasks.get(0), 10);
@@ -126,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_non_contiguous_ranges() {
-        let tasks = TaskList::from(vec![100..101, 200..203, 300..305]);
+        let tasks = TaskList::from(&[100..101, 200..203, 300..305][..]);
         assert_eq!(tasks.len, 1 + 3 + 5);
 
         assert_eq!(tasks.get(0), 100);
@@ -138,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_zero_length_ranges() {
-        let tasks = TaskList::from(vec![10..10, 20..20, 30..35]);
+        let tasks = TaskList::from(&[10..10, 20..20, 30..35][..]);
         assert_eq!(tasks.len, 5);
 
         assert_eq!(tasks.get(0), 30);
@@ -147,37 +146,37 @@ mod tests {
 
     #[test]
     fn test_get_range() {
-        let tasks = TaskList::from(vec![10..15, 20..25]);
+        let tasks = TaskList::from(&[10..15, 20..25][..]);
 
         // 单任务段范围
-        assert_eq!(tasks.get_range(0..5), vec![10..15]);
+        assert_eq!(tasks.get_range(0..5), &[10..15][..]);
         // 跨任务段范围
-        assert_eq!(tasks.get_range(3..7), vec![13..15, 20..22]);
+        assert_eq!(tasks.get_range(3..7), &[13..15, 20..22][..]);
         // 空范围
-        assert_eq!(tasks.get_range(5..5), vec![]);
+        assert_eq!(tasks.get_range(5..5), &[][..]);
         // 边界测试
-        assert_eq!(tasks.get_range(4..5), vec![14..15]);
-        assert_eq!(tasks.get_range(4..6), vec![14..15, 20..21]);
-        assert_eq!(tasks.get_range(5..7), vec![20..22]);
+        assert_eq!(tasks.get_range(4..5), &[14..15][..]);
+        assert_eq!(tasks.get_range(4..6), &[14..15, 20..21][..]);
+        assert_eq!(tasks.get_range(5..7), &[20..22][..]);
         // 完整覆盖多个段
-        assert_eq!(tasks.get_range(0..10), vec![10..15, 20..25]);
+        assert_eq!(tasks.get_range(0..10), &[10..15, 20..25][..]);
     }
 
     #[test]
     fn test_get_range2() {
-        let tasks = TaskList::from(vec![20..25, 10..15]);
+        let tasks = TaskList::from(&[20..25, 10..15][..]);
 
         // 单任务段范围
-        assert_eq!(tasks.get_range(0..5), vec![20..25]);
+        assert_eq!(tasks.get_range(0..5), &[20..25][..]);
         // 跨任务段范围
-        assert_eq!(tasks.get_range(3..7), vec![23..25, 10..12]);
+        assert_eq!(tasks.get_range(3..7), &[23..25, 10..12][..]);
         // 空范围
-        assert_eq!(tasks.get_range(5..5), vec![]);
+        assert_eq!(tasks.get_range(5..5), &[][..]);
         // 边界测试
-        assert_eq!(tasks.get_range(4..5), vec![24..25]);
-        assert_eq!(tasks.get_range(4..6), vec![24..25, 10..11]);
-        assert_eq!(tasks.get_range(5..7), vec![10..12]);
+        assert_eq!(tasks.get_range(4..5), &[24..25][..]);
+        assert_eq!(tasks.get_range(4..6), &[24..25, 10..11][..]);
+        assert_eq!(tasks.get_range(5..7), &[10..12][..]);
         // 完整覆盖多个段
-        assert_eq!(tasks.get_range(0..10), vec![20..25, 10..15]);
+        assert_eq!(tasks.get_range(0..10), &[20..25, 10..15][..]);
     }
 }

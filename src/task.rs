@@ -77,8 +77,6 @@ impl From<&TaskList> for Task {
 #[cfg(test)]
 mod tests {
     use super::*;
-    extern crate alloc;
-    use alloc::vec;
 
     #[test]
     fn test_new_task() {
@@ -135,7 +133,7 @@ mod tests {
 
     #[test]
     fn test_from_task_list() {
-        let task_list = TaskList::from(vec![10..42, 80..84]);
+        let task_list = TaskList::from(&[10..42, 80..84][..]);
         let task: Task = (&task_list).into();
         assert_eq!(task.start(), 0);
         assert_eq!(task.end(), 36);
