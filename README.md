@@ -1,5 +1,9 @@
 # fast-steal 神偷
 
+> [!IMPORTANT]
+> Move to https://github.com/fast-down/core  
+> 仓库移动至 https://github.com/fast-down/core
+
 ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/fast-down/fast-steal/master)
 [![Rust](https://github.com/fast-down/fast-steal/workflows/Test/badge.svg)](https://github.com/fast-down/fast-steal/actions)
 [![Latest version](https://img.shields.io/crates/v/fast-steal.svg)](https://crates.io/crates/fast-steal)
